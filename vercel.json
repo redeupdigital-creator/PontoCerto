@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/index.js", "use": "@vercel/node" },
+    { "src": "mobile/**", "use": "@vercel/static" },
+    { "src": "sistema-ponto-integrado.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "api/index.js" },
+    { "src": "/app", "dest": "/mobile/index.html" },
+    { "src": "/app/(.*)", "dest": "/mobile/$1" },
+    { "src": "/painel", "dest": "/sistema-ponto-integrado.html" }
+  ]
+}

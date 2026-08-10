@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Controle de Ponto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1F3A54; --navy-dark:#152A3D; --gold:#B8862E; --gold-light:#E8D9B8;
+    --bg:#F4F5F7; --card:#FFFFFF; --line:#DDE1E6; --text:#1F2937; --muted:#6B7480;
+    --green:#166534; --green-bg:#E7F3EA; --amber:#8A5A0A; --amber-bg:#FBF0DC;
+    --red:#B91C1C; --red-bg:#FBE9E9;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans', sans-serif; font-size:14px;}
+  h1,h2,h3,.brand{font-family:'Space Grotesk',sans-serif;}
+  .nums{font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+
+  /* ---------- Login screen (split-screen, moderno) ---------- */
+  #login-screen{ position:fixed; top:0; right:0; bottom:0; left:0; display:grid; grid-template-columns: 46% 54%; }
+
+  .login-visual{
+    position:relative; overflow:hidden; background:linear-gradient(155deg, var(--navy-dark) 0%, var(--navy) 60%, #24425F 100%);
+    display:flex; align-items:center; padding:0 56px;
+  }
+  .login-visual-blob{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.55; pointer-events:none; }
+  .blob-a{ width:340px; height:340px; background:var(--gold); top:-90px; right:-90px; opacity:.35; }
+  .blob-b{ width:280px; height:280px; background:#6E8FB0; bottom:-80px; left:-60px; opacity:.4; }
+  .login-visual-content{ position:relative; z-index:1; color:#fff; max-width:420px; }
+  .login-visual-brand{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:18px; letter-spacing:.3px; margin-bottom:48px; display:flex; align-items:center; gap:8px; }
+  .login-visual-brand::before{ content:''; width:9px; height:9px; border-radius:50%; background:var(--gold); display:inline-block; }
+  .login-visual-heading{ font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:700; line-height:1.2; margin:0 0 16px; }
+  .login-visual-sub{ font-size:14.5px; line-height:1.6; color:#C9D2DC; margin:0 0 36px; }
+  .login-visual-features{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:16px; }
+  .login-visual-features li{ display:flex; align-items:center; gap:12px; font-size:13.5px; color:#DCE3EA; }
+  .login-visual-features .lv-icon{
+    width:34px; height:34px; flex-shrink:0; border-radius:10px; background:rgba(255,255,255,.1);
+    display:flex; align-items:center; justify-content:center; font-size:15px; backdrop-filter:blur(4px);
+  }
+
+  .login-form-panel{ background:#fff; display:flex; align-items:center; justify-content:center; padding:32px; overflow-y:auto; }
+  .login-card{ width:100%; max-width:360px; animation: loginRise .5s ease both; }
+  @keyframes loginRise{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .login-card-brand{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase; margin-bottom:28px; }
+  .login-card h2{ font-size:25px; margin:0 0 6px; color:var(--navy-dark); }
+  .login-card-sub{ font-size:13.5px; color:var(--muted); margin:0 0 32px; }
+
+  .field-float{ position:relative; margin-bottom:18px; }
+  .field-float input{
+    width:100%; padding:17px 14px 9px; border:1.5px solid var(--line); border-radius:11px;
+    font-size:15px; font-family:inherit; background:#fff; color:var(--text); transition:border-color .15s;
+  }
+  .field-float input:focus{ outline:none; border-color:var(--navy); }
+  .field-float label{
+    position:absolute; left:13px; top:16px; font-size:15px; color:var(--muted); pointer-events:none;
+    background:#fff; padding:0 4px; transition: all .15s ease;
+  }
+  .field-float input:focus + label,
+  .field-float input:not(:placeholder-shown) + label{
+    top:-8px; font-size:11px; font-weight:600; color:var(--navy); left:10px;
+  }
+  .field-pass input{ padding-right:44px; }
+  .toggle-pass{
+    position:absolute; right:6px; top:8px; background:none; border:none; cursor:pointer; padding:8px;
+    font-size:15px; color:var(--muted); line-height:1;
+  }
+  .toggle-pass:hover{ color:var(--navy); }
+
+  .btn-entrar{
+    width:100%; margin-top:6px; padding:15px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%); color:#fff;
+    font-weight:700; font-size:15px; font-family:inherit; box-shadow:0 10px 22px rgba(21,42,61,.28);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-entrar:hover{ transform:translateY(-2px); box-shadow:0 14px 28px rgba(21,42,61,.34); }
+  .btn-entrar:active{ transform:translateY(0); }
+  .btn-entrar:disabled{ opacity:.6; transform:none; box-shadow:none; cursor:default; }
+
+  .api-toggle{ margin-top:20px; }
+  .api-toggle summary{ font-size:11.5px; color:var(--muted); cursor:pointer; user-select:none; }
+  .api-toggle input{ margin-top:10px; width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-size:11.5px; color:var(--muted); }
+  .login-err{ background:var(--red-bg); color:var(--red); font-size:12.5px; padding:9px 11px; border-radius:9px; margin-top:14px; }
+
+  @media (max-width: 860px){
+    #login-screen{ grid-template-columns: 1fr; }
+    .login-visual{ display:none; }
+    .login-form-panel{ padding:24px; }
+  }
+
+  /* ---------- App shell ---------- */
+  #app{display:none; min-height:100vh; flex-direction:row;}
+  #app.visible{display:flex;}
+  nav.sidebar{width:230px; background:var(--navy); color:#fff; flex-shrink:0; display:flex; flex-direction:column; padding:20px 0;}
+  nav.sidebar .brand{padding:0 20px 20px; font-size:17px; font-weight:700; letter-spacing:.3px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:10px;}
+  nav.sidebar .brand small{display:block; font-family:'IBM Plex Sans'; font-weight:400; font-size:11px; color:var(--gold-light); margin-top:2px;}
+  nav.sidebar button{background:none; border:none; color:#C9D2DC; text-align:left; padding:11px 20px; font-size:13.5px; cursor:pointer; border-left:3px solid transparent; font-family:'IBM Plex Sans'; display:flex; align-items:center; gap:10px; width:100%;}
+  nav.sidebar button:hover{background:rgba(255,255,255,.06); color:#fff;}
+  nav.sidebar button.active{background:rgba(255,255,255,.09); color:#fff; border-left-color:var(--gold); font-weight:600;}
+  nav.sidebar .icon{width:16px; text-align:center; font-size:14px;}
+  nav.sidebar .userbox{margin-top:auto; padding:14px 20px 0; border-top:1px solid rgba(255,255,255,.12);}
+  nav.sidebar .userbox .who{font-size:12px; color:#C9D2DC;}
+  nav.sidebar .userbox button{padding:8px 0; color:var(--gold-light); font-size:12px;}
+
+  main{flex:1; padding:28px 34px; max-width:1180px;}
+  .page-title{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px;}
+  .page-title h1{font-size:21px; margin:0; color:var(--navy-dark);}
+  .page-title p{margin:2px 0 0; color:var(--muted); font-size:13px;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px; margin-bottom:20px;}
+  .card h3{margin:0 0 14px; font-size:14px; color:var(--navy-dark); text-transform:uppercase; letter-spacing:.4px;}
+
+  .grid{display:grid; gap:12px;}
+  .grid.cols-2{grid-template-columns:1fr 1fr;}
+  .grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+  .grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:500;}
+  input, select, textarea{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:5px; font-family:inherit; font-size:13.5px; background:#fff; color:var(--text);}
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--gold); outline-offset:-1px; border-color:var(--gold);}
+  .field{margin-bottom:0;}
+
+  button.btn{background:var(--navy); color:#fff; border:none; padding:9px 16px; border-radius:5px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;}
+  button.btn:hover{background:var(--navy-dark);}
+  button.btn.gold{background:var(--gold);}
+  button.btn.gold:hover{background:#96701F;}
+  button.btn.ghost{background:none; border:1px solid var(--line); color:var(--text);}
+  button.btn.ghost:hover{background:#F0F1F3;}
+  button.btn.sm{padding:5px 10px; font-size:12px;}
+  button.btn.danger{background:var(--red-bg); color:var(--red); border:1px solid #EFC5C5;}
+  button.btn:disabled{opacity:.55; cursor:not-allowed;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; background:#F0F2F5; padding:8px 10px; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; color:var(--muted); border-bottom:1px solid var(--line);}
+  td{padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tr.weekend td{background:#FAFAFB; color:var(--muted);}
+  tr.holiday td{background:#FCF4E8;}
+
+  .badge{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;}
+  .badge.green{background:var(--green-bg); color:var(--green);}
+  .badge.amber{background:var(--amber-bg); color:var(--amber);}
+  .badge.red{background:var(--red-bg); color:var(--red);}
+  .badge.gray{background:#EDEEF0; color:var(--muted);}
+
+  .photo-box{width:96px; height:120px; border:2px solid var(--navy); border-radius:4px; overflow:hidden; background:#EDEEF0; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .photo-box img{width:100%; height:100%; object-fit:cover;}
+  .photo-box .ph{font-size:10px; color:var(--muted); text-align:center; padding:6px;}
+
+  .toolbar{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:16px;}
+  .tabs-sub{display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--line);}
+  .tabs-sub button{background:none; border:none; padding:9px 14px; font-size:13px; cursor:pointer; color:var(--muted); border-bottom:2px solid transparent; font-family:inherit; font-weight:500;}
+  .tabs-sub button.active{color:var(--navy-dark); border-color:var(--gold); font-weight:600;}
+
+  .empty{color:var(--muted); font-size:13px; padding:18px 0; text-align:center;}
+  .loading{color:var(--muted); font-size:13px; padding:18px 0; text-align:center;}
+  .totals-row td{font-weight:700; background:#F7F5EF; border-top:2px solid var(--navy);}
+
+  #cartao-preview{background:#fff; border:1px solid var(--line); padding:0;}
+  .cp-sheet{padding:26px 30px; font-family:'IBM Plex Sans';}
+  .cp-header{display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid var(--navy); padding-bottom:14px; margin-bottom:16px;}
+  .cp-header h2{margin:0 0 3px; font-size:17px; color:var(--navy-dark);}
+  .cp-header .empresa{font-size:12px; color:var(--muted);}
+  .cp-header .periodo{font-size:12px; margin-top:6px; font-weight:600;}
+  .cp-employee{display:flex; gap:16px; margin-bottom:16px;}
+  .cp-employee .info{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:8px 20px;}
+  .cp-employee .info div span.l{display:block; font-size:10.5px; text-transform:uppercase; color:var(--muted); letter-spacing:.4px;}
+  .cp-employee .info div span.v{font-size:13.5px; font-weight:600;}
+  .cp-table th, .cp-table td{padding:5px 7px; font-size:11.5px; border:1px solid #C9CED4;}
+  .cp-table th{background:#EEF1F4;}
+  .cp-sign{margin-top:26px; display:flex; justify-content:space-between; gap:40px;}
+  .cp-sign .line{flex:1; text-align:center; padding-top:34px; border-top:1px solid #444; font-size:11.5px; color:var(--muted);}
+  .cp-obs{margin-top:14px; font-size:11px; color:var(--muted); border-top:1px dashed var(--line); padding-top:8px;}
+
+  /* ---------- Etiquetas (foto + cabeçalho, para colar no cartão físico) ---------- */
+  #etiquetas-folha{
+    display:flex; flex-wrap:wrap; gap:4mm; background:#fff; padding:10mm;
+    border:1px solid var(--line);
+  }
+  .etiqueta{
+    width: var(--et-largura, 9.4cm); height: var(--et-altura, 4.3cm);
+    border: 1px dashed #999; padding:2mm 3mm; box-sizing:border-box;
+    display:flex; gap:2.5mm; font-family:'IBM Plex Sans'; page-break-inside:avoid;
+    overflow:hidden;
+  }
+  .etiqueta.sem-corte{border-color:transparent;}
+  .etiqueta .et-foto{
+    width:2.1cm; height:2.7cm; flex-shrink:0; border:1px solid #444; background:#EDEEF0;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .etiqueta .et-foto img{width:100%; height:100%; object-fit:cover;}
+  .etiqueta .et-foto .ph{font-size:6.5px; color:var(--muted); text-align:center;}
+  .etiqueta .et-campos{flex:1; min-width:0; display:flex; flex-direction:column; justify-content:flex-start; gap:0.8mm;}
+  .etiqueta .et-linha{display:flex; gap:2mm;}
+  .etiqueta .et-campo{min-width:0;}
+  .etiqueta .et-campo .l{font-size:6px; text-transform:uppercase; letter-spacing:.3px; color:#666; line-height:1.1;}
+  .etiqueta .et-campo .v{font-size:9px; font-weight:700; color:#111; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .etiqueta .et-empregado .v{font-size:10.5px;}
+  .etiqueta .et-quinzena{font-size:8px; font-weight:700; background:#1F3A54; color:#fff; padding:1px 5px; border-radius:3px; align-self:flex-start;}
+
+  @media print{
+    nav.sidebar, .no-print{display:none !important;}
+    main{padding:0; max-width:none;}
+    body{background:#fff;}
+    #cartao-preview{border:none;}
+    .cp-sheet{padding:0;}
+    #etiquetas-folha{border:none; padding:0;}
+    @page{ size:A4; margin:8mm; }
+  }
+
+  .msg{padding:8px 12px; border-radius:5px; font-size:12.5px; margin-bottom:12px;}
+  .msg.ok{background:var(--green-bg); color:var(--green);}
+  .msg.err{background:var(--red-bg); color:var(--red);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-visual">
+    <div class="login-visual-blob blob-a"></div>
+    <div class="login-visual-blob blob-b"></div>
+    <div class="login-visual-content">
+      <div class="login-visual-brand">PontoCerto</div>
+      <h1 class="login-visual-heading">Controle de ponto,<br>do jeito certo.</h1>
+      <p class="login-visual-sub">Bata o ponto, acompanhe relatórios e gerencie sua equipe em um só lugar — com segurança e trilha de auditoria em cada registro.</p>
+      <ul class="login-visual-features">
+        <li><span class="lv-icon">⏱</span> Ponto com geolocalização, direto do celular</li>
+        <li><span class="lv-icon">📊</span> Relatórios de falta, atraso, férias e atestado</li>
+        <li><span class="lv-icon">🔒</span> Acesso por perfil, com trilha de auditoria</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="login-form-panel">
+    <div class="login-card">
+      <div class="login-card-brand">PontoCerto</div>
+      <h2>Bem-vindo de volta</h2>
+      <p class="login-card-sub">Entre com suas credenciais para acessar o painel.</p>
+
+      <div class="field-float">
+        <input id="login-user" placeholder=" " value="admin" autocomplete="username">
+        <label>Usuário</label>
+      </div>
+
+      <div class="field-float field-pass">
+        <input id="login-pass" type="password" placeholder=" " value="admin123" autocomplete="current-password">
+        <label>Senha</label>
+        <button type="button" id="btn-toggle-senha" class="toggle-pass" aria-label="Mostrar senha">👁</button>
+      </div>
+
+      <button id="btn-login" class="btn-entrar">Entrar</button>
+      <div id="login-msg"></div>
+
+      <details class="api-toggle">
+        <summary>Endereço da API (avançado)</summary>
+        <input id="login-api" value="/api">
+      </details>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <nav class="sidebar">
+    <div class="brand">PontoCerto<small>Módulo de Controle de Ponto</small></div>
+    <button data-tab="colaboradores" class="active"><span class="icon">01</span> Colaboradores</button>
+    <button data-tab="ponto"><span class="icon">02</span> Registro de Ponto</button>
+    <button data-tab="abonos"><span class="icon">03</span> Abono de Batidas</button>
+    <button data-tab="ausencias"><span class="icon">04</span> Ausências</button>
+    <button data-tab="relatorios"><span class="icon">05</span> Relatórios</button>
+    <button data-tab="cartao"><span class="icon">06</span> Cartão de Ponto</button>
+    <button data-tab="config"><span class="icon">⚙</span> Feriados</button>
+    <button data-tab="etiquetas"><span class="icon">🏷</span> Etiquetas</button>
+    <button data-tab="conta"><span class="icon">👤</span> Minha Conta</button>
+    <div class="userbox">
+      <div class="who" id="who-label"></div>
+      <button id="btn-logout">Sair</button>
+    </div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ============================================================
+   API CLIENT
+   ============================================================ */
+let API_BASE = '/api';
+let TOKEN = null;
+let PERFIL = null;
+let MEU_COLABORADOR_ID = null;
+
+// Quais abas cada perfil enxerga. "colaborador" só usa as ferramentas de
+// self-service; "gestor" tem tudo que colaborador tem, mais gestão de equipe;
+// rh/admin veem tudo. A API já bloqueia no backend — isso é só a interface
+// não oferecer botões que o perfil não vai conseguir usar.
+const ABAS_POR_PERFIL = {
+  colaborador: ['abonos', 'ausencias', 'cartao', 'config', 'conta'],
+  gestor: ['colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'conta'],
+  rh: ['colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'etiquetas', 'conta'],
+  admin: ['colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'etiquetas', 'conta'],
+};
+
+function abaPermitida(tab){
+  if(!PERFIL) return true;
+  return (ABAS_POR_PERFIL[PERFIL] || []).includes(tab);
+}
+
+function aplicarVisibilidadeAbas(){
+  document.querySelectorAll('nav.sidebar button[data-tab]').forEach(btn=>{
+    btn.style.display = abaPermitida(btn.dataset.tab) ? '' : 'none';
+  });
+}
+
+async function apiFetch(path, options = {}) {
+  const headers = options.headers ? { ...options.headers } : {};
+  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+  if (!(options.body instanceof FormData) && options.body) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (res.status === 204) return null;
+  let data;
+  try { data = await res.json(); } catch (e) { data = null; }
+  if (!res.ok) {
+    throw new Error((data && data.erro) || `Erro ${res.status}`);
+  }
+  return data;
+}
+
+function apiOrigin() {
+  return API_BASE.replace(/\/api\/?$/, '');
+}
+function fotoUrl(colab) {
+  if (!colab || !colab.fotoPath) return null;
+  if (colab.fotoPath.startsWith('http')) return colab.fotoPath; // URL absoluta (ex: Supabase Storage)
+  return apiOrigin() + colab.fotoPath; // caminho relativo (ex: /uploads/... em disco local)
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('btn-toggle-senha').addEventListener('click', ()=>{
+  const inp = document.getElementById('login-pass');
+  const btn = document.getElementById('btn-toggle-senha');
+  const mostrando = inp.type === 'text';
+  inp.type = mostrando ? 'password' : 'text';
+  btn.textContent = mostrando ? '👁' : '🙈';
+  btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+});
+
+async function doLogin(){
+  const login = document.getElementById('login-user').value.trim();
+  const senha = document.getElementById('login-pass').value;
+  API_BASE = document.getElementById('login-api').value.trim().replace(/\/$/, '');
+  const btn = document.getElementById('btn-login');
+  const msgEl = document.getElementById('login-msg');
+  msgEl.innerHTML = '';
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try{
+    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ login, senha }) });
+    TOKEN = data.token; PERFIL = data.perfil; MEU_COLABORADOR_ID = data.colaboradorId || null;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('who-label').textContent = `${login} · ${PERFIL}`;
+    aplicarVisibilidadeAbas();
+    if(!abaPermitida(currentTab)){
+      const primeiraPermitida = (ABAS_POR_PERFIL[PERFIL] || [])[0] || 'cartao';
+      currentTab = primeiraPermitida;
+      document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab));
+    }
+    await bootstrap();
+  }catch(err){
+    msgEl.innerHTML = `<div class="login-err">${err.message.includes('Failed to fetch') ? 'Não foi possível conectar à API. Verifique se o backend está rodando e o endereço está correto.' : err.message}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+document.getElementById('btn-logout').addEventListener('click', ()=>{
+  TOKEN = null; PERFIL = null; MEU_COLABORADOR_ID = null;
+  document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>{ b.style.display=''; });
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+});
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const DIAS_SEMANA = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+const DIAS_SEMANA_ABR = ['dom','seg','ter','qua','qui','sex','sáb'];
+const DIA_KEYS = ['dom','seg','ter','qua','qui','sex','sab'];
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayYM(){ const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; }
+function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
+function dateStr(y,m,d){ return `${y}-${pad(m)}-${pad(d)}`; }
+
+function showMsg(id, text, type){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  setTimeout(()=>{ if(el) el.innerHTML=''; }, 3000);
+}
+
+/* ============================================================
+   STATE / CACHE
+   ============================================================ */
+let colaboradoresCache = [];
+let currentTab = 'colaboradores';
+let subTab = { ausencias: 'ferias', relatorios: 'falta' };
+let selected = { colabPonto: null, colabCartao: null, mes: todayYM() };
+
+function findColab(id){ return colaboradoresCache.find(c=>c.id===id); }
+
+document.querySelectorAll('nav.sidebar button[data-tab]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    render();
+  });
+});
+
+const main = document.getElementById('main');
+
+async function bootstrap(){
+  main.innerHTML = `<div class="loading">Carregando...</div>`;
+  try{
+    colaboradoresCache = await apiFetch('/colaboradores');
+  }catch(e){
+    colaboradoresCache = [];
+  }
+  if(PERFIL === 'colaborador' && MEU_COLABORADOR_ID){
+    selected.colabPonto = MEU_COLABORADOR_ID;
+    selected.colabCartao = MEU_COLABORADOR_ID;
+  } else {
+    if(!selected.colabPonto && colaboradoresCache[0]) selected.colabPonto = colaboradoresCache[0].id;
+    if(!selected.colabCartao && colaboradoresCache[0]) selected.colabCartao = colaboradoresCache[0].id;
+  }
+  render();
+}
+
+async function refreshColaboradores(){
+  colaboradoresCache = await apiFetch('/colaboradores');
+}
+
+function render(){
+  const renderers = {
+    colaboradores: renderColaboradores,
+    ponto: renderPonto,
+    abonos: renderAbonos,
+    ausencias: renderAusencias,
+    relatorios: renderRelatorios,
+    cartao: renderCartao,
+    config: renderConfig,
+    etiquetas: renderEtiquetas,
+    conta: renderConta
+  };
+  main.innerHTML = '';
+  renderers[currentTab]();
+}
+
+/* ============================================================
+   TAB: COLABORADORES
+   ============================================================ */
+function renderColaboradores(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Colaboradores</h1><p>Cadastro de funcionários, jornada semanal e foto</p></div></div>
+    <div class="card">
+      <h3>Novo colaborador</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Nome completo</label><input id="f-nome"></div>
+        <div class="field"><label>Matrícula</label><input id="f-mat"></div>
+        <div class="field"><label>Cargo</label><input id="f-cargo"></div>
+        <div class="field"><label>Departamento</label><input id="f-depto"></div>
+      </div>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Data de admissão</label><input type="date" id="f-adm"></div>
+        <div class="field"><label>Foto</label><input type="file" accept="image/*" id="f-foto"></div>
+        <div class="field" style="grid-column:span 2;">
+          <label>Jornada semanal (horas por dia)</label>
+          <div style="display:flex; gap:6px;">
+            ${DIA_KEYS.map((k,i)=>`<div style="flex:1;"><small style="color:var(--muted); font-size:10px;">${DIAS_SEMANA_ABR[i]}</small><input type="number" min="0" max="24" step="0.5" id="f-j-${k}" value="${k==='dom'||k==='sab'?'0':'8'}"></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div id="colab-msg"></div>
+      <button class="btn gold" id="btn-add-colab">+ Adicionar colaborador</button>
+    </div>
+    <div class="card"><h3>Colaboradores cadastrados (${colaboradoresCache.length})</h3><div id="lista-colab"></div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-add-colab').addEventListener('click', async ()=>{
+    const nome = document.getElementById('f-nome').value.trim();
+    if(!nome){ showMsg('colab-msg','Informe o nome do colaborador.','err'); return; }
+    const jornada = {};
+    DIA_KEYS.forEach(k=> jornada[k] = parseFloat(document.getElementById(`f-j-${k}`).value)||0);
+
+    const fd = new FormData();
+    fd.append('nome', nome);
+    fd.append('matricula', document.getElementById('f-mat').value.trim());
+    fd.append('cargo', document.getElementById('f-cargo').value.trim());
+    fd.append('departamento', document.getElementById('f-depto').value.trim());
+    fd.append('dataAdmissao', document.getElementById('f-adm').value);
+    fd.append('jornada', JSON.stringify(jornada));
+    const fileInput = document.getElementById('f-foto');
+    if(fileInput.files[0]) fd.append('foto', fileInput.files[0]);
+
+    try{
+      await apiFetch('/colaboradores', { method:'POST', body: fd });
+      await refreshColaboradores();
+      showMsg('colab-msg','Colaborador adicionado.','ok');
+      render();
+    }catch(err){ showMsg('colab-msg', err.message, 'err'); }
+  });
+
+  const listaEl = wrap.querySelector('#lista-colab');
+  if(colaboradoresCache.length===0){
+    listaEl.innerHTML = `<div class="empty">Nenhum colaborador cadastrado ainda.</div>`;
+  }else{
+    listaEl.innerHTML = `<table><thead><tr><th></th><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Depto</th><th>Jornada</th><th></th></tr></thead><tbody>
+      ${colaboradoresCache.map(c=>`
+        <tr>
+          <td><div class="photo-box" style="width:34px;height:40px;">${fotoUrl(c)?`<img src="${fotoUrl(c)}">`:'<div class="ph" style="font-size:8px;">sem foto</div>'}</div></td>
+          <td><strong>${c.nome}</strong></td>
+          <td class="nums">${c.matricula||'—'}</td>
+          <td>${c.cargo||'—'}</td>
+          <td>${c.departamento||'—'}</td>
+          <td class="nums">${DIA_KEYS.map(k=>c.jornada[k]).join('/')}</td>
+          <td><button class="btn danger sm" data-del="${c.id}">Remover</button></td>
+        </tr>`).join('')}
+    </tbody></table>`;
+    listaEl.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+      if(confirm('Remover este colaborador?')){
+        try{ await apiFetch(`/colaboradores/${b.dataset.del}`, { method:'DELETE' }); await refreshColaboradores(); render(); }
+        catch(err){ alert(err.message); }
+      }
+    }));
+  }
+}
+
+/* ============================================================
+   TAB: REGISTRO DE PONTO
+   ============================================================ */
+async function renderPonto(){
+  const wrap = document.createElement('div');
+  const colab = selected.colabPonto ? findColab(selected.colabPonto) : null;
+  const ym = selected.mes || todayYM();
+  const [y,m] = ym.split('-').map(Number);
+
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Registro de Ponto</h1><p>Lançamento manual de batidas (entrada/saída) por dia</p></div></div>
+    <div class="toolbar card">
+      <div class="field" style="width:280px;"><label>Colaborador</label>
+        <select id="sel-colab" ${PERFIL==='colaborador'?'disabled':''}><option value="">Selecione...</option>${colaboradoresCache.map(c=>`<option value="${c.id}" ${c.id===selected.colabPonto?'selected':''}>${c.nome}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="width:180px;"><label>Mês / Ano</label><input type="month" id="sel-mes" value="${ym}"></div>
+    </div>
+    <div class="card" id="ponto-table-wrap"><div class="loading">Carregando batidas...</div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('sel-colab').addEventListener('change', e=>{ selected.colabPonto = e.target.value || null; render(); });
+  document.getElementById('sel-mes').addEventListener('change', e=>{ selected.mes = e.target.value; render(); });
+
+  const tableWrap = document.getElementById('ponto-table-wrap');
+  if(!colab){ tableWrap.innerHTML = `<div class="empty">Selecione um colaborador para lançar as batidas.</div>`; return; }
+
+  let cartao;
+  try{
+    cartao = await apiFetch(`/cartao-ponto/${colab.id}?mes=${ym}`);
+  }catch(err){
+    tableWrap.innerHTML = `<div class="msg err">${err.message}</div>`;
+    return;
+  }
+  if(currentTab !== 'ponto') return; // usuário já navegou para outra aba
+
+  let rows = '';
+  cartao.dias.forEach(info=>{
+    const d = parseInt(info.data.split('-')[2]);
+    const dow = info.diaSemana;
+    const cls = (dow===0||dow===6) ? 'weekend' : (info.feriado?'holiday':'');
+    rows += `<tr class="${cls}" data-dstr="${info.data}">
+      <td class="nums">${info.data.split('-').reverse().slice(0,2).join('/')}</td>
+      <td>${DIAS_SEMANA_ABR[dow]}${info.feriado?' <span class="badge amber">feriado</span>':''}</td>
+      <td><input type="time" class="bt" data-f="e1" value="${info.batida.e1||''}"></td>
+      <td><input type="time" class="bt" data-f="s1" value="${info.batida.s1||''}"></td>
+      <td><input type="time" class="bt" data-f="e2" value="${info.batida.e2||''}"></td>
+      <td><input type="time" class="bt" data-f="s2" value="${info.batida.s2||''}"></td>
+      <td class="nums">${info.horasTrabalhadas}</td>
+      <td class="nums" style="color:${info.minutosAtraso>0?'var(--red)':'inherit'}">${info.minutosAtraso>0?info.horasAtraso:'—'}</td>
+      <td class="nums" style="color:${info.minutosExtra>0?'var(--green)':'inherit'}">${info.minutosExtra>0?info.horasExtra:'—'}</td>
+      <td>${info.ausencia?`<span class="badge gray">${info.ausencia.tipo}</span>`:info.falta?'<span class="badge red">falta</span>':info.abonado?'<span class="badge green">abonado</span>':''}
+          <button class="btn sm ghost" data-save="${info.data}" style="margin-left:6px;">Salvar</button></td>
+    </tr>`;
+  });
+
+  tableWrap.innerHTML = `
+    <table>
+      <thead><tr><th>Data</th><th>Dia</th><th>Entrada</th><th>Saída int.</th><th>Volta int.</th><th>Saída</th><th>Trabalhado</th><th>Atraso</th><th>H. Extra</th><th>Status / Ação</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="color:var(--muted); font-size:12px; margin-top:10px;">Altere os horários de um dia e clique em "Salvar" na linha correspondente.</p>
+  `;
+
+  tableWrap.querySelectorAll('[data-save]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const tr = btn.closest('tr');
+      const dstr = tr.dataset.dstr;
+      const body = { colaboradorId: colab.id, data: dstr };
+      tr.querySelectorAll('input.bt').forEach(inp=>{ body[inp.dataset.f] = inp.value; });
+      btn.textContent = '...'; btn.disabled = true;
+      try{
+        await apiFetch('/batidas', { method:'PUT', body: JSON.stringify(body) });
+        render();
+      }catch(err){ alert(err.message); btn.textContent='Salvar'; btn.disabled=false; }
+    });
+  });
+}
+
+/* ============================================================
+   TAB: ABONO DE BATIDAS
+   ============================================================ */
+async function renderAbonos(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Abono de Batidas</h1><p>Esquecimento de batida, liberação da gerência ou trabalho externo</p></div></div>
+    <div class="card">
+      <h3>Nova solicitação de abono</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Colaborador</label><select id="a-colab" ${PERFIL==='colaborador'?'disabled':''}><option value="">Selecione...</option>${colaboradoresCache.map(c=>`<option value="${c.id}" ${PERFIL==='colaborador'&&c.id===MEU_COLABORADOR_ID?'selected':''}>${c.nome}</option>`).join('')}</select></div>
+        <div class="field"><label>Data</label><input type="date" id="a-data"></div>
+        <div class="field"><label>Tipo de motivo</label>
+          <select id="a-tipo">
+            <option value="esquecimento">Esquecimento de batida</option>
+            <option value="liberado_gerencia">Liberado pela gerência</option>
+            <option value="trabalho_externo">Trabalho externo</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="field"><label>Horário informado (se aplicável)</label><input type="time" id="a-horario"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px;"><label>Justificativa</label><textarea id="a-just" rows="2"></textarea></div>
+      <div id="abono-msg"></div>
+      <button class="btn gold" id="btn-add-abono">+ Enviar solicitação</button>
+    </div>
+    <div class="card"><h3>Solicitações</h3><div id="lista-abonos"><div class="loading">Carregando...</div></div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-add-abono').addEventListener('click', async ()=>{
+    const colaboradorId = document.getElementById('a-colab').value;
+    const data = document.getElementById('a-data').value;
+    if(!colaboradorId || !data){ showMsg('abono-msg','Selecione colaborador e data.','err'); return; }
+    try{
+      await apiFetch('/abonos', { method:'POST', body: JSON.stringify({
+        colaboradorId, data, tipoMotivo: document.getElementById('a-tipo').value,
+        horarioInformado: document.getElementById('a-horario').value,
+        justificativa: document.getElementById('a-just').value
+      })});
+      showMsg('abono-msg','Solicitação registrada como pendente.','ok');
+      render();
+    }catch(err){ showMsg('abono-msg', err.message, 'err'); }
+  });
+
+  const tiposLabel = {esquecimento:'Esquecimento de batida', liberado_gerencia:'Liberado pela gerência', trabalho_externo:'Trabalho externo', outro:'Outro'};
+  let abonos;
+  try{ abonos = await apiFetch('/abonos'); }catch(err){ document.getElementById('lista-abonos').innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  if(currentTab !== 'abonos') return;
+
+  const listaEl = document.getElementById('lista-abonos');
+  if(abonos.length===0){ listaEl.innerHTML = `<div class="empty">Nenhuma solicitação de abono.</div>`; }
+  else{
+    listaEl.innerHTML = `<table><thead><tr><th>Colaborador</th><th>Data</th><th>Motivo</th><th>Justificativa</th><th>Status</th><th></th></tr></thead><tbody>
+      ${abonos.map(a=>{
+        const c = findColab(a.colaboradorId);
+        const badge = a.status==='aprovado'?'green':a.status==='reprovado'?'red':'amber';
+        return `<tr>
+          <td>${c?c.nome:'—'}</td><td class="nums">${a.data}</td><td>${tiposLabel[a.tipoMotivo]}</td><td>${a.justificativa||'—'}</td>
+          <td><span class="badge ${badge}">${a.status}</span></td>
+          <td>${a.status==='pendente' && PERFIL!=='colaborador' ?`<button class="btn sm gold" data-ap="${a.id}">Aprovar</button> <button class="btn sm danger" data-rp="${a.id}">Reprovar</button>`:''}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+    listaEl.querySelectorAll('[data-ap]').forEach(b=>b.addEventListener('click', async ()=>{
+      try{ await apiFetch(`/abonos/${b.dataset.ap}/aprovar`, { method:'PATCH' }); render(); }catch(err){ alert(err.message); }
+    }));
+    listaEl.querySelectorAll('[data-rp]').forEach(b=>b.addEventListener('click', async ()=>{
+      try{ await apiFetch(`/abonos/${b.dataset.rp}/reprovar`, { method:'PATCH' }); render(); }catch(err){ alert(err.message); }
+    }));
+  }
+}
+
+/* ============================================================
+   TAB: AUSÊNCIAS
+   ============================================================ */
+async function renderAusencias(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Ausências</h1><p>Férias, atestados médicos e ocorrências disciplinares</p></div></div>
+    <div class="tabs-sub">
+      <button data-s="ferias" class="${subTab.ausencias==='ferias'?'active':''}">Férias</button>
+      <button data-s="atestado" class="${subTab.ausencias==='atestado'?'active':''}">Atestados</button>
+      <button data-s="ocorrencia" class="${subTab.ausencias==='ocorrencia'?'active':''}">Advertência / Suspensão</button>
+    </div>
+    <div id="aus-content"><div class="loading">Carregando...</div></div>
+  `;
+  main.appendChild(wrap);
+  wrap.querySelectorAll('.tabs-sub button').forEach(b=>b.addEventListener('click',()=>{ subTab.ausencias=b.dataset.s; render(); }));
+
+  const content = document.getElementById('aus-content');
+  const colabOptions = `<option value="">Selecione...</option>${colaboradoresCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}`;
+  const podeGerenciarAusencias = PERFIL !== 'colaborador';
+
+  if(subTab.ausencias==='ferias'){
+    content.innerHTML = `
+      ${podeGerenciarAusencias ? `
+      <div class="card"><h3>Nova programação de férias</h3>
+        <div class="grid cols-4" style="margin-bottom:12px;">
+          <div class="field"><label>Colaborador</label><select id="fe-colab">${colabOptions}</select></div>
+          <div class="field"><label>Início período aquisitivo</label><input type="date" id="fe-aq-i"></div>
+          <div class="field"><label>Fim período aquisitivo</label><input type="date" id="fe-aq-f"></div>
+          <div class="field"><label>Dias de abono pecuniário</label><input type="number" id="fe-abono" min="0" max="10" value="0"></div>
+          <div class="field"><label>Início do gozo</label><input type="date" id="fe-inicio"></div>
+          <div class="field"><label>Fim do gozo</label><input type="date" id="fe-fim"></div>
+        </div>
+        <button class="btn gold" id="btn-add-ferias">+ Registrar férias</button>
+      </div>` : ''}
+      <div class="card"><h3>Férias registradas</h3><div id="lista-ferias"><div class="loading">Carregando...</div></div></div>
+    `;
+    if(podeGerenciarAusencias) document.getElementById('btn-add-ferias').addEventListener('click', async ()=>{
+      const colaboradorId = document.getElementById('fe-colab').value;
+      const dataInicioGozo = document.getElementById('fe-inicio').value, dataFimGozo = document.getElementById('fe-fim').value;
+      if(!colaboradorId||!dataInicioGozo||!dataFimGozo) return;
+      try{
+        await apiFetch('/ausencias/ferias', { method:'POST', body: JSON.stringify({
+          colaboradorId, dataInicioGozo, dataFimGozo,
+          periodoAquisitivoInicio: document.getElementById('fe-aq-i').value,
+          periodoAquisitivoFim: document.getElementById('fe-aq-f').value,
+          diasAbonoPecuniario: parseInt(document.getElementById('fe-abono').value)||0
+        })});
+        render();
+      }catch(err){ alert(err.message); }
+    });
+    let lista;
+    try{ lista = await apiFetch('/ausencias/ferias'); }catch(err){ document.getElementById('lista-ferias').innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+    if(currentTab!=='ausencias'||subTab.ausencias!=='ferias') return;
+    const l = document.getElementById('lista-ferias');
+    l.innerHTML = lista.length===0?`<div class="empty">Nenhuma férias registrada.</div>`:
+      `<table><thead><tr><th>Colaborador</th><th>Per. Aquisitivo</th><th>Gozo</th><th>Dias</th><th>Abono</th></tr></thead><tbody>
+        ${lista.map(f=>{
+          const c=findColab(f.colaboradorId);
+          const dias = Math.round((new Date(f.dataFimGozo)-new Date(f.dataInicioGozo))/86400000)+1;
+          return `<tr><td>${c?c.nome:'—'}</td><td class="nums">${f.periodoAquisitivoInicio||'—'} a ${f.periodoAquisitivoFim||'—'}</td><td class="nums">${f.dataInicioGozo} a ${f.dataFimGozo}</td><td class="nums">${dias}</td><td class="nums">${f.diasAbonoPecuniario}</td></tr>`;
+        }).join('')}
+      </tbody></table>`;
+  }
+
+  if(subTab.ausencias==='atestado'){
+    content.innerHTML = `
+      ${podeGerenciarAusencias ? `
+      <div class="card"><h3>Novo atestado</h3>
+        <div class="grid cols-4" style="margin-bottom:12px;">
+          <div class="field"><label>Colaborador</label><select id="at-colab">${colabOptions}</select></div>
+          <div class="field"><label>Início</label><input type="date" id="at-inicio"></div>
+          <div class="field"><label>Fim</label><input type="date" id="at-fim"></div>
+          <div class="field"><label>CID (opcional)</label><input id="at-cid"></div>
+        </div>
+        <div class="field" style="margin-bottom:12px;"><label>Médico / observação</label><input id="at-medico"></div>
+        <button class="btn gold" id="btn-add-atestado">+ Registrar atestado</button>
+      </div>` : ''}
+      <div class="card"><h3>Atestados registrados</h3><div id="lista-atestados"><div class="loading">Carregando...</div></div></div>
+    `;
+    if(podeGerenciarAusencias) document.getElementById('btn-add-atestado').addEventListener('click', async ()=>{
+      const colaboradorId = document.getElementById('at-colab').value;
+      const dataInicio = document.getElementById('at-inicio').value, dataFim = document.getElementById('at-fim').value;
+      if(!colaboradorId||!dataInicio||!dataFim) return;
+      try{
+        await apiFetch('/ausencias/atestados', { method:'POST', body: JSON.stringify({
+          colaboradorId, dataInicio, dataFim, cid: document.getElementById('at-cid').value, medico: document.getElementById('at-medico').value
+        })});
+        render();
+      }catch(err){ alert(err.message); }
+    });
+    let lista;
+    try{ lista = await apiFetch('/ausencias/atestados'); }catch(err){ document.getElementById('lista-atestados').innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+    if(currentTab!=='ausencias'||subTab.ausencias!=='atestado') return;
+    const l = document.getElementById('lista-atestados');
+    l.innerHTML = lista.length===0?`<div class="empty">Nenhum atestado registrado.</div>`:
+      `<table><thead><tr><th>Colaborador</th><th>Período</th><th>Dias</th><th>CID</th><th>Médico</th></tr></thead><tbody>
+        ${lista.map(a=>{
+          const c=findColab(a.colaboradorId);
+          const dias = Math.round((new Date(a.dataFim)-new Date(a.dataInicio))/86400000)+1;
+          return `<tr><td>${c?c.nome:'—'}</td><td class="nums">${a.dataInicio} a ${a.dataFim}</td><td class="nums">${dias}${dias>15?' <span class="badge amber">INSS</span>':''}</td><td>${a.cid||'—'}</td><td>${a.medico||'—'}</td></tr>`;
+        }).join('')}
+      </tbody></table>`;
+  }
+
+  if(subTab.ausencias==='ocorrencia'){
+    content.innerHTML = `
+      ${podeGerenciarAusencias ? `
+      <div class="card"><h3>Nova ocorrência disciplinar</h3>
+        <div class="grid cols-4" style="margin-bottom:12px;">
+          <div class="field"><label>Colaborador</label><select id="oc-colab">${colabOptions}</select></div>
+          <div class="field"><label>Tipo</label><select id="oc-tipo"><option value="advertencia">Advertência</option><option value="suspensao">Suspensão</option></select></div>
+          <div class="field"><label>Início</label><input type="date" id="oc-inicio"></div>
+          <div class="field"><label>Fim (se suspensão)</label><input type="date" id="oc-fim"></div>
+        </div>
+        <div class="field" style="margin-bottom:12px;"><label>Motivo</label><textarea id="oc-motivo" rows="2"></textarea></div>
+        <button class="btn gold" id="btn-add-oc">+ Registrar ocorrência</button>
+      </div>` : ''}
+      <div class="card"><h3>Ocorrências registradas</h3><div id="lista-oc"><div class="loading">Carregando...</div></div></div>
+    `;
+    if(podeGerenciarAusencias) document.getElementById('btn-add-oc').addEventListener('click', async ()=>{
+      const colaboradorId = document.getElementById('oc-colab').value;
+      const dataInicio = document.getElementById('oc-inicio').value;
+      if(!colaboradorId||!dataInicio) return;
+      try{
+        await apiFetch('/ausencias/ocorrencias', { method:'POST', body: JSON.stringify({
+          colaboradorId, tipo: document.getElementById('oc-tipo').value, dataInicio,
+          dataFim: document.getElementById('oc-fim').value, motivo: document.getElementById('oc-motivo').value
+        })});
+        render();
+      }catch(err){ alert(err.message); }
+    });
+    let lista;
+    try{ lista = await apiFetch('/ausencias/ocorrencias'); }catch(err){ document.getElementById('lista-oc').innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+    if(currentTab!=='ausencias'||subTab.ausencias!=='ocorrencia') return;
+    const l = document.getElementById('lista-oc');
+    l.innerHTML = lista.length===0?`<div class="empty">Nenhuma ocorrência registrada.</div>`:
+      `<table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Período</th><th>Motivo</th></tr></thead><tbody>
+        ${lista.map(o=>{
+          const c=findColab(o.colaboradorId);
+          return `<tr><td>${c?c.nome:'—'}</td><td><span class="badge ${o.tipo==='suspensao'?'red':'amber'}">${o.tipo}</span></td><td class="nums">${o.dataInicio}${o.dataFim?' a '+o.dataFim:''}</td><td>${o.motivo||'—'}</td></tr>`;
+        }).join('')}
+      </tbody></table>`;
+  }
+}
+
+/* ============================================================
+   TAB: RELATÓRIOS
+   ============================================================ */
+async function renderRelatorios(){
+  const wrap = document.createElement('div');
+  const ym = selected.mes || todayYM();
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Relatórios</h1><p>Falta e atraso, férias, suspensão/advertência e atestado</p></div></div>
+    <div class="tabs-sub">
+      <button data-s="falta" class="${subTab.relatorios==='falta'?'active':''}">Falta e Atraso</button>
+      <button data-s="ferias" class="${subTab.relatorios==='ferias'?'active':''}">Férias</button>
+      <button data-s="ocorrencia" class="${subTab.relatorios==='ocorrencia'?'active':''}">Suspensão/Advertência</button>
+      <button data-s="atestado" class="${subTab.relatorios==='atestado'?'active':''}">Atestado</button>
+    </div>
+    <div class="card no-print" style="display:flex; gap:12px; align-items:flex-end;">
+      <div class="field" style="width:180px;"><label>Mês de referência</label><input type="month" id="rel-mes" value="${ym}"></div>
+      <button class="btn ghost" id="btn-print-rel">🖶 Imprimir</button>
+      <button class="btn ghost" id="btn-export-xlsx">⬇ Exportar Excel</button>
+      <button class="btn ghost" id="btn-export-pdf">⬇ Exportar PDF</button>
+      <div id="export-msg" style="flex-basis:100%;"></div>
+    </div>
+    <div class="card" id="rel-content"><div class="loading">Carregando...</div></div>
+  `;
+  main.appendChild(wrap);
+  wrap.querySelectorAll('.tabs-sub button').forEach(b=>b.addEventListener('click',()=>{ subTab.relatorios=b.dataset.s; render(); }));
+  document.getElementById('btn-print-rel').addEventListener('click', ()=>window.print());
+  document.getElementById('rel-mes').addEventListener('change', e=>{ selected.mes = e.target.value; renderRelContent(); });
+  document.getElementById('btn-export-xlsx').addEventListener('click', ()=>baixarExportacao('xlsx'));
+  document.getElementById('btn-export-pdf').addEventListener('click', ()=>baixarExportacao('pdf'));
+
+  const TIPO_EXPORT = { falta: 'falta-atraso', ferias: 'ferias', ocorrencia: 'ocorrencias', atestado: 'atestados' };
+
+  async function baixarExportacao(formato){
+    const mes = document.getElementById('rel-mes').value;
+    const tipo = TIPO_EXPORT[subTab.relatorios];
+    const btn = formato==='xlsx' ? document.getElementById('btn-export-xlsx') : document.getElementById('btn-export-pdf');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Gerando...';
+    try{
+      const res = await fetch(`${API_BASE}/relatorios/${tipo}/exportar?formato=${formato}&mes=${mes}`, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err.erro || `Erro ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${tipo}-${mes}.${formato}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }catch(err){
+      showMsg('export-msg', err.message, 'err');
+    }finally{
+      btn.disabled = false; btn.textContent = textoOriginal;
+    }
+  }
+
+  renderRelContent();
+
+  async function renderRelContent(){
+    const mes = document.getElementById('rel-mes').value;
+    const content = document.getElementById('rel-content');
+    content.innerHTML = `<div class="loading">Carregando...</div>`;
+    try{
+      if(subTab.relatorios==='falta'){
+        const data = await apiFetch(`/relatorios/falta-atraso?mes=${mes}`);
+        content.innerHTML = data.linhas.length? `<table><thead><tr><th>Colaborador</th><th>Data</th><th>Ocorrência</th><th>Minutos</th></tr></thead><tbody>
+          ${data.linhas.map(l=>`<tr><td>${l.colaborador}</td><td class="nums">${l.data}</td><td>${l.ocorrencia==='falta'?'<span class="badge red">Falta</span>':'<span class="badge amber">Atraso</span>'}</td><td class="nums">${l.horas||'—'}</td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">Nenhuma falta ou atraso no período.</div>`;
+      }
+      if(subTab.relatorios==='ferias'){
+        const lista = await apiFetch('/relatorios/ferias');
+        content.innerHTML = lista.length? `<table><thead><tr><th>Colaborador</th><th>Per. Aquisitivo</th><th>Gozo</th><th>Abono</th></tr></thead><tbody>
+          ${lista.map(f=>`<tr><td>${f.Colaborador?f.Colaborador.nome:'—'}</td><td class="nums">${f.periodoAquisitivoInicio||'—'} a ${f.periodoAquisitivoFim||'—'}</td><td class="nums">${f.dataInicioGozo} a ${f.dataFimGozo}</td><td class="nums">${f.diasAbonoPecuniario}</td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">Nenhum registro de férias.</div>`;
+      }
+      if(subTab.relatorios==='ocorrencia'){
+        const lista = await apiFetch('/relatorios/ocorrencias');
+        content.innerHTML = lista.length? `<table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Período</th><th>Motivo</th></tr></thead><tbody>
+          ${lista.map(o=>`<tr><td>${o.Colaborador?o.Colaborador.nome:'—'}</td><td><span class="badge ${o.tipo==='suspensao'?'red':'amber'}">${o.tipo}</span></td><td class="nums">${o.dataInicio}${o.dataFim?' a '+o.dataFim:''}</td><td>${o.motivo||'—'}</td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">Nenhuma ocorrência registrada.</div>`;
+      }
+      if(subTab.relatorios==='atestado'){
+        const lista = await apiFetch('/relatorios/atestados');
+        content.innerHTML = lista.length? `<table><thead><tr><th>Colaborador</th><th>Período</th><th>Dias</th><th>CID</th><th>Médico</th></tr></thead><tbody>
+          ${lista.map(a=>`<tr><td>${a.Colaborador?a.Colaborador.nome:'—'}</td><td class="nums">${a.dataInicio} a ${a.dataFim}</td><td class="nums">${a.dias}${a.exigeAfastamentoINSS?' <span class="badge amber">INSS</span>':''}</td><td>${a.cid||'—'}</td><td>${a.medico||'—'}</td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">Nenhum atestado registrado.</div>`;
+      }
+    }catch(err){ content.innerHTML = `<div class="msg err">${err.message}</div>`; }
+  }
+}
+
+/* ============================================================
+   TAB: CARTÃO DE PONTO
+   ============================================================ */
+async function renderCartao(){
+  const wrap = document.createElement('div');
+  const ym = selected.mes || todayYM();
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Cartão de Ponto</h1><p>Geração do espelho de ponto para impressão, com foto e dados do funcionário</p></div></div>
+    <div class="toolbar card no-print">
+      <div class="field" style="width:280px;"><label>Colaborador</label>
+        <select id="cp-colab" ${PERFIL==='colaborador'?'disabled':''}><option value="">Selecione...</option>${colaboradoresCache.map(c=>`<option value="${c.id}" ${c.id===selected.colabCartao?'selected':''}>${c.nome}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="width:180px;"><label>Mês / Ano</label><input type="month" id="cp-mes" value="${ym}"></div>
+      <button class="btn gold" id="btn-print-cp">🖶 Imprimir cartão</button>
+    </div>
+    <div id="cartao-preview"><div class="loading">Carregando...</div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('cp-colab').addEventListener('change', e=>{ selected.colabCartao = e.target.value || null; render(); });
+  document.getElementById('cp-mes').addEventListener('change', e=>{ selected.mes = e.target.value; render(); });
+  document.getElementById('btn-print-cp').addEventListener('click', ()=>window.print());
+
+  const colab = selected.colabCartao ? findColab(selected.colabCartao) : null;
+  const preview = document.getElementById('cartao-preview');
+  if(!colab){ preview.innerHTML = `<div class="card"><div class="empty">Selecione um colaborador para gerar o cartão de ponto.</div></div>`; return; }
+
+  let data;
+  try{ data = await apiFetch(`/cartao-ponto/${colab.id}?mes=${ym}`); }
+  catch(err){ preview.innerHTML = `<div class="card"><div class="msg err">${err.message}</div></div>`; return; }
+  if(currentTab !== 'cartao') return;
+
+  const fotoRaw = data.colaborador.fotoUrl;
+  const foto = fotoRaw ? (fotoRaw.startsWith('http') ? fotoRaw : apiOrigin()+fotoRaw) : null;
+  const jornada = data.colaborador.jornada;
+  const [y,m] = ym.split('-').map(Number);
+
+  let rows = '';
+  data.dias.forEach(info=>{
+    const obs = info.ausencia?info.ausencia.tipo:(info.falta?'falta':(info.feriado?'feriado':''));
+    rows += `<tr>
+      <td class="nums">${info.data.split('-').reverse().slice(0,2).join('/')}</td><td>${DIAS_SEMANA_ABR[info.diaSemana]}</td>
+      <td class="nums">${info.batida.e1||'—'}</td><td class="nums">${info.batida.s1||'—'}</td>
+      <td class="nums">${info.batida.e2||'—'}</td><td class="nums">${info.batida.s2||'—'}</td>
+      <td class="nums">${info.horasTrabalhadas}</td>
+      <td class="nums">${info.minutosAtraso>0?info.horasAtraso:'—'}</td>
+      <td class="nums">${info.minutosExtra>0?info.horasExtra:'—'}</td>
+      <td>${obs}</td>
+    </tr>`;
+  });
+
+  preview.innerHTML = `
+    <div class="cp-sheet">
+      <div class="cp-header">
+        <div>
+          <h2>Cartão de Ponto</h2>
+          <div class="empresa">Período: 01/${pad(m)}/${y} a ${daysInMonth(y,m)}/${pad(m)}/${y}</div>
+        </div>
+      </div>
+      <div class="cp-employee">
+        <div class="photo-box">${foto?`<img src="${foto}">`:'<div class="ph">Sem foto cadastrada</div>'}</div>
+        <div class="info">
+          <div><span class="l">Nome</span><span class="v">${data.colaborador.nome}</span></div>
+          <div><span class="l">Matrícula</span><span class="v">${data.colaborador.matricula||'—'}</span></div>
+          <div><span class="l">Cargo</span><span class="v">${data.colaborador.cargo||'—'}</span></div>
+          <div><span class="l">Departamento</span><span class="v">${data.colaborador.departamento||'—'}</span></div>
+          <div><span class="l">Admissão</span><span class="v">${data.colaborador.dataAdmissao||'—'}</span></div>
+          <div><span class="l">Jornada semanal</span><span class="v nums">${DIA_KEYS.map(k=>jornada[k]).join('/')} h</span></div>
+        </div>
+      </div>
+      <table class="cp-table">
+        <thead><tr><th>Data</th><th>Dia</th><th>Entrada</th><th>Saída int.</th><th>Volta int.</th><th>Saída</th><th>Trab.</th><th>Atraso</th><th>H.Extra</th><th>Obs.</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tr class="totals-row"><td colspan="6">TOTAIS DO MÊS</td><td class="nums">${data.totais.trabalhado}</td><td class="nums">${data.totais.atraso}</td><td class="nums">${data.totais.extra}</td><td class="nums">${data.totais.faltas} falta(s)</td></tr>
+      </table>
+      <div class="cp-obs">Observações: ______________________________________________________________________________________</div>
+      <div class="cp-sign">
+        <div class="line">Assinatura do colaborador</div>
+        <div class="line">Assinatura do responsável / RH</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   TAB: FERIADOS (config)
+   ============================================================ */
+async function renderConfig(){
+  const wrap = document.createElement('div');
+  const podeGerenciarFeriados = PERFIL === 'rh' || PERFIL === 'admin';
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Feriados</h1><p>Cadastro de feriados nacionais/estaduais/municipais usados no cálculo</p></div></div>
+    <div class="card">
+      ${podeGerenciarFeriados ? `
+      <h3>Novo feriado</h3>
+      <div class="grid cols-3" style="margin-bottom:12px;">
+        <div class="field"><label>Data</label><input type="date" id="fer-data"></div>
+        <div class="field"><label>Descrição</label><input id="fer-desc"></div>
+      </div>
+      <button class="btn gold" id="btn-add-fer">+ Adicionar feriado</button>` : `<h3>Feriados cadastrados</h3>`}
+      <div style="margin-top:14px;" id="lista-fer"><div class="loading">Carregando...</div></div>
+    </div>
+  `;
+  main.appendChild(wrap);
+
+  if(podeGerenciarFeriados) document.getElementById('btn-add-fer').addEventListener('click', async ()=>{
+    const data = document.getElementById('fer-data').value;
+    if(!data) return;
+    try{
+      await apiFetch('/feriados', { method:'POST', body: JSON.stringify({ data, descricao: document.getElementById('fer-desc').value }) });
+      render();
+    }catch(err){ alert(err.message); }
+  });
+
+  let feriados;
+  try{ feriados = await apiFetch('/feriados'); }catch(err){ document.getElementById('lista-fer').innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  if(currentTab !== 'config') return;
+
+  const l = document.getElementById('lista-fer');
+  l.innerHTML = feriados.length===0?`<div class="empty">Nenhum feriado cadastrado.</div>`:
+    `<table><thead><tr><th>Data</th><th>Descrição</th><th></th></tr></thead><tbody>
+      ${feriados.map(f=>`<tr><td class="nums">${f.data}</td><td>${f.descricao||'—'}</td><td>${podeGerenciarFeriados?`<button class="btn sm danger" data-del="${f.id}">Remover</button>`:''}</td></tr>`).join('')}
+    </tbody></table>`;
+  l.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+    try{ await apiFetch(`/feriados/${b.dataset.del}`, { method:'DELETE' }); render(); }catch(err){ alert(err.message); }
+  }));
+}
+
+/* ============================================================
+   TAB: ETIQUETAS (foto + cabeçalho do cartão físico, para impressão)
+   ============================================================ */
+let etiquetasSelecionadas = new Set();
+
+async function renderEtiquetas(){
+  const wrap = document.createElement('div');
+  const ym = todayYM();
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Etiquetas para o Cartão de Ponto</h1><p>Gere uma etiqueta com foto e dados do cabeçalho para colar no cartão físico (modelo Tholz / similar)</p></div></div>
+
+    <div class="card no-print">
+      <h3>Dados da empresa (aparecem em todas as etiquetas)</h3>
+      <div class="grid cols-3" style="margin-bottom:4px;">
+        <div class="field"><label>Empregador / Razão Social</label><input id="emp-razao"></div>
+        <div class="field"><label>CNPJ</label><input id="emp-cnpj" placeholder="00.000.000/0000-00"></div>
+        <div class="field"><label>Atividade Econômica</label><input id="emp-atividade"></div>
+      </div>
+      <div id="emp-msg"></div>
+      <button class="btn ghost sm" id="btn-salvar-empresa" style="margin-top:8px;">Salvar dados da empresa</button>
+    </div>
+
+    <div class="card no-print">
+      <h3>Selecionar colaboradores</h3>
+      <div style="margin-bottom:10px;"><button class="btn ghost sm" id="btn-marcar-todos">Marcar todos</button> <button class="btn ghost sm" id="btn-desmarcar-todos">Desmarcar todos</button></div>
+      <div id="lista-colab-etiqueta" style="max-height:220px; overflow:auto; border:1px solid var(--line); border-radius:6px; padding:8px;"></div>
+    </div>
+
+    <div class="card no-print">
+      <h3>Período e formato</h3>
+      <div class="grid cols-4" style="margin-bottom:10px;">
+        <div class="field"><label>Mês / Ano</label><input type="month" id="et-mes" value="${ym}"></div>
+        <div class="field"><label>Quinzena</label><select id="et-quinzena"><option value="1ª QUINZENA">1ª Quinzena</option><option value="2ª QUINZENA">2ª Quinzena</option><option value="MENSAL">Mensal</option></select></div>
+        <div class="field"><label>Largura da etiqueta (cm)</label><input type="number" id="et-largura" value="9.4" step="0.1" min="4"></div>
+        <div class="field"><label>Altura da etiqueta (cm)</label><input type="number" id="et-altura" value="4.3" step="0.1" min="2"></div>
+      </div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text); margin-bottom:10px;">
+        <input type="checkbox" id="et-linha-corte" checked style="width:auto; margin:0;"> Mostrar linha de corte tracejada (desmarque se for imprimir direto em papel adesivo pré-cortado)
+      </label>
+      <div style="display:flex; gap:10px;">
+        <button class="btn gold" id="btn-gerar-etiquetas">Gerar etiquetas</button>
+        <button class="btn ghost" id="btn-imprimir-etiquetas">🖶 Imprimir</button>
+      </div>
+    </div>
+
+    <div id="etiquetas-folha"></div>
+  `;
+  main.appendChild(wrap);
+
+  // Carrega dados da empresa
+  try{
+    const empresa = await apiFetch('/empresa');
+    document.getElementById('emp-razao').value = empresa.razaoSocial || '';
+    document.getElementById('emp-cnpj').value = empresa.cnpj || '';
+    document.getElementById('emp-atividade').value = empresa.atividadeEconomica || '';
+  }catch(err){ showMsg('emp-msg', err.message, 'err'); }
+
+  document.getElementById('btn-salvar-empresa').addEventListener('click', async ()=>{
+    try{
+      await apiFetch('/empresa', { method:'PUT', body: JSON.stringify({
+        razaoSocial: document.getElementById('emp-razao').value,
+        cnpj: document.getElementById('emp-cnpj').value,
+        atividadeEconomica: document.getElementById('emp-atividade').value,
+      })});
+      showMsg('emp-msg', 'Dados da empresa salvos.', 'ok');
+    }catch(err){ showMsg('emp-msg', err.message, 'err'); }
+  });
+
+  // Lista de colaboradores com checkbox
+  const listaEl = document.getElementById('lista-colab-etiqueta');
+  if(colaboradoresCache.length===0){
+    listaEl.innerHTML = `<div class="empty">Nenhum colaborador cadastrado.</div>`;
+  }else{
+    listaEl.innerHTML = colaboradoresCache.map(c=>`
+      <label style="display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13.5px; cursor:pointer;">
+        <input type="checkbox" class="chk-colab-et" value="${c.id}" ${etiquetasSelecionadas.has(c.id)?'checked':''} style="width:auto; margin:0;">
+        ${c.nome} ${c.matricula?`<span class="nums" style="color:var(--muted); font-size:12px;">(${c.matricula})</span>`:''}
+      </label>
+    `).join('');
+    listaEl.querySelectorAll('.chk-colab-et').forEach(chk=>{
+      chk.addEventListener('change', ()=>{
+        if(chk.checked) etiquetasSelecionadas.add(chk.value); else etiquetasSelecionadas.delete(chk.value);
+      });
+    });
+  }
+  document.getElementById('btn-marcar-todos').addEventListener('click', ()=>{
+    colaboradoresCache.forEach(c=>etiquetasSelecionadas.add(c.id));
+    listaEl.querySelectorAll('.chk-colab-et').forEach(chk=>chk.checked=true);
+  });
+  document.getElementById('btn-desmarcar-todos').addEventListener('click', ()=>{
+    etiquetasSelecionadas.clear();
+    listaEl.querySelectorAll('.chk-colab-et').forEach(chk=>chk.checked=false);
+  });
+
+  document.getElementById('btn-imprimir-etiquetas').addEventListener('click', ()=>window.print());
+  document.getElementById('btn-gerar-etiquetas').addEventListener('click', async ()=>{
+    let empresa = {};
+    try{ empresa = await apiFetch('/empresa'); }catch(e){}
+    gerarFolhaEtiquetas(empresa);
+  });
+}
+
+function gerarFolhaEtiquetas(empresa){
+  const largura = document.getElementById('et-largura').value || '9.4';
+  const altura = document.getElementById('et-altura').value || '4.3';
+  const mostrarCorte = document.getElementById('et-linha-corte').checked;
+  const quinzena = document.getElementById('et-quinzena').value;
+  const ym = document.getElementById('et-mes').value;
+  const [ano, mes] = ym.split('-');
+  const mesNome = new Date(Number(ano), Number(mes)-1, 1).toLocaleDateString('pt-BR', { month:'long' });
+
+  const folha = document.getElementById('etiquetas-folha');
+  folha.style.setProperty('--et-largura', `${largura}cm`);
+  folha.style.setProperty('--et-altura', `${altura}cm`);
+
+  const selecionados = colaboradoresCache.filter(c => etiquetasSelecionadas.has(c.id));
+  if(selecionados.length === 0){
+    folha.innerHTML = `<div class="empty" style="width:100%;">Selecione ao menos um colaborador acima.</div>`;
+    return;
+  }
+
+  folha.innerHTML = selecionados.map(c => {
+    const foto = fotoUrl(c);
+    return `
+    <div class="etiqueta ${mostrarCorte?'':'sem-corte'}">
+      <div class="et-foto">${foto?`<img src="${foto}">`:'<div class="ph">sem foto</div>'}</div>
+      <div class="et-campos">
+        <div class="et-campo et-empregado"><div class="l">Empregado</div><div class="v">${c.nome}</div></div>
+        <div class="et-campo"><div class="l">Empregador / Razão Social</div><div class="v">${empresa.razaoSocial || '—'}</div></div>
+        <div class="et-linha">
+          <div class="et-campo" style="flex:1;"><div class="l">C.N.P.J.</div><div class="v">${empresa.cnpj || '—'}</div></div>
+          <div class="et-campo" style="flex:1;"><div class="l">Atividade Econômica</div><div class="v">${empresa.atividadeEconomica || '—'}</div></div>
+        </div>
+        <div class="et-linha">
+          <div class="et-campo" style="flex:1;"><div class="l">Nº Registro</div><div class="v">${c.numeroRegistro || c.matricula || '—'}</div></div>
+          <div class="et-campo" style="flex:1;"><div class="l">Nº CTPS</div><div class="v">${c.ctps || '—'}</div></div>
+          <div class="et-campo" style="flex:1;"><div class="l">Função</div><div class="v">${c.cargo || '—'}</div></div>
+        </div>
+        <div class="et-linha" style="align-items:center; justify-content:space-between;">
+          <div class="et-campo" style="flex:1;"><div class="l">Local do Trabalho</div><div class="v">${c.localTrabalho || '—'}</div></div>
+          <span class="et-quinzena">${quinzena!=='MENSAL'?quinzena:'MENSAL'} · ${mesNome}/${ano}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   TAB: MINHA CONTA (troca de senha self-service)
+   ============================================================ */
+function renderConta(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Minha Conta</h1><p>Troque sua senha de acesso ao sistema</p></div></div>
+    <div class="card" style="max-width:420px;">
+      <h3>Alterar senha</h3>
+      <div class="field" style="margin-bottom:12px;"><label>Senha atual</label><input type="password" id="conta-atual"></div>
+      <div class="field" style="margin-bottom:12px;"><label>Nova senha (mín. 6 caracteres)</label><input type="password" id="conta-nova"></div>
+      <div class="field" style="margin-bottom:12px;"><label>Confirmar nova senha</label><input type="password" id="conta-confirma"></div>
+      <div id="conta-msg"></div>
+      <button class="btn gold" id="btn-trocar-senha">Salvar nova senha</button>
+    </div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-trocar-senha').addEventListener('click', async ()=>{
+    const senhaAtual = document.getElementById('conta-atual').value;
+    const novaSenha = document.getElementById('conta-nova').value;
+    const confirma = document.getElementById('conta-confirma').value;
+    if(!senhaAtual || !novaSenha){ showMsg('conta-msg','Preencha todos os campos.','err'); return; }
+    if(novaSenha !== confirma){ showMsg('conta-msg','A confirmação não confere com a nova senha.','err'); return; }
+    try{
+      await apiFetch('/usuarios/me/senha', { method:'PATCH', body: JSON.stringify({ senhaAtual, novaSenha }) });
+      showMsg('conta-msg','Senha alterada com sucesso.','ok');
+      document.getElementById('conta-atual').value = '';
+      document.getElementById('conta-nova').value = '';
+      document.getElementById('conta-confirma').value = '';
+    }catch(err){ showMsg('conta-msg', err.message, 'err'); }
+  });
+}
+</script>
+</body>
+</html>

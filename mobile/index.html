@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1F3A54">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PontoCerto</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1F3A54; --navy-dark:#152A3D; --gold:#B8862E; --gold-light:#E8D9B8;
+    --bg:#F4F5F7; --card:#FFFFFF; --line:#E2E5E9; --text:#1F2937; --muted:#6B7480;
+    --green:#166534; --green-bg:#E7F3EA; --amber:#8A5A0A; --amber-bg:#FBF0DC; --red:#B91C1C; --red-bg:#FBE9E9;
+    --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:15px;
+    overscroll-behavior-y:none; user-select:none;
+  }
+  h1,h2,h3,.brand{font-family:'Space Grotesk',sans-serif;}
+  .nums{font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+  input,textarea,select{user-select:text;}
+  button{font-family:inherit; -webkit-tap-highlight-color:transparent;}
+
+  /* ---------- Login ---------- */
+  #login-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    background:linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%);
+  }
+  .login-box{background:#fff; border-radius:16px; padding:32px 26px; width:100%; max-width:360px; box-shadow:0 20px 50px rgba(0,0,0,.3);}
+  .login-box .brand{font-size:20px; color:var(--navy-dark); text-align:center;}
+  .login-box .brand small{display:block; font-family:'IBM Plex Sans'; font-weight:400; font-size:12px; color:var(--muted); margin-top:4px;}
+  .login-box label{display:block; font-size:12px; color:var(--muted); margin:16px 0 5px; font-weight:500;}
+  .login-box input{width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:10px; font-size:16px;}
+  .login-box button{width:100%; margin-top:22px; background:var(--gold); color:#fff; border:none; padding:14px; border-radius:10px; font-weight:700; font-size:16px;}
+  .login-err{background:var(--red-bg); color:var(--red); font-size:13px; padding:10px 12px; border-radius:8px; margin-top:14px;}
+  details.api-toggle{margin-top:16px; text-align:center;}
+  details.api-toggle summary{font-size:11.5px; color:var(--muted); cursor:pointer;}
+  details.api-toggle input{margin-top:8px; font-size:11.5px; color:var(--muted);}
+
+  /* ---------- App shell ---------- */
+  #app{display:none; min-height:100vh; flex-direction:column;}
+  #app.visible{display:flex;}
+  header.topbar{
+    background:var(--navy); color:#fff; padding:calc(var(--safe-top) + 14px) 18px 14px;
+    display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10;
+  }
+  header.topbar .brand{font-size:16px; font-weight:700;}
+  header.topbar .who{font-size:11px; color:var(--gold-light);}
+  header.topbar button{background:none; border:none; color:#C9D2DC; font-size:13px;}
+
+  main{flex:1; padding:18px 16px calc(90px + var(--safe-bottom));}
+
+  nav.tabbar{
+    position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line);
+    display:flex; padding-bottom:var(--safe-bottom); z-index:10;
+  }
+  nav.tabbar button{
+    flex:1; background:none; border:none; padding:10px 0 8px; display:flex; flex-direction:column;
+    align-items:center; gap:3px; color:var(--muted); font-size:11px; font-weight:500;
+  }
+  nav.tabbar button .ic{font-size:20px;}
+  nav.tabbar button.active{color:var(--navy);}
+  nav.tabbar button.active .ic{color:var(--gold);}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px;}
+  .page-title{margin-bottom:16px;}
+  .page-title h1{font-size:19px; margin:0; color:var(--navy-dark);}
+  .page-title p{margin:2px 0 0; color:var(--muted); font-size:12.5px;}
+
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:500;}
+  input,select,textarea{width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text); margin-bottom:12px;}
+
+  button.btn{background:var(--navy); color:#fff; border:none; padding:13px 18px; border-radius:10px; font-size:14.5px; font-weight:700; width:100%;}
+  button.btn.gold{background:var(--gold);}
+  button.btn.ghost{background:#fff; border:1px solid var(--line); color:var(--text);}
+  button.btn:disabled{opacity:.5;}
+
+  .badge{display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700;}
+  .badge.green{background:var(--green-bg); color:var(--green);}
+  .badge.amber{background:var(--amber-bg); color:var(--amber);}
+  .badge.red{background:var(--red-bg); color:var(--red);}
+  .badge.gray{background:#EDEEF0; color:var(--muted);}
+
+  .msg{padding:10px 13px; border-radius:10px; font-size:13px; margin-bottom:14px;}
+  .msg.ok{background:var(--green-bg); color:var(--green);}
+  .msg.err{background:var(--red-bg); color:var(--red);}
+  .empty{color:var(--muted); font-size:13px; padding:20px 0; text-align:center;}
+  .loading{color:var(--muted); font-size:13px; padding:20px 0; text-align:center;}
+
+  /* ---------- Tela de bater ponto ---------- */
+  .clock-card{
+    background:linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%); color:#fff; border-radius:20px;
+    padding:26px 22px; text-align:center; margin-bottom:18px;
+  }
+  .clock-card .relogio{font-size:44px; font-weight:700; font-family:'IBM Plex Mono',monospace; letter-spacing:1px;}
+  .clock-card .data{font-size:13px; color:var(--gold-light); margin-top:2px; text-transform:capitalize;}
+
+  .slots{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+  .slot{background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;}
+  .slot .rotulo{font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+  .slot .hora{font-size:18px; font-weight:700; margin-top:4px; font-family:'IBM Plex Mono',monospace;}
+  .slot.feito{background:var(--green-bg); border-color:#BFE0C8;}
+  .slot.feito .hora{color:var(--green);}
+  .slot.pendente .hora{color:var(--line); font-size:16px;}
+  .slot.proximo{border-color:var(--gold); box-shadow:0 0 0 2px rgba(184,134,46,0.15);}
+
+  .btn-bater{
+    width:100%; padding:22px; border:none; border-radius:18px; background:var(--gold); color:#fff;
+    font-size:18px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:6px;
+    box-shadow:0 8px 20px rgba(184,134,46,0.35);
+  }
+  .btn-bater:active{transform:scale(0.98);}
+  .btn-bater:disabled{opacity:.6; box-shadow:none;}
+  .btn-bater .sub{font-size:12px; font-weight:400; opacity:.9;}
+  .btn-bater.concluido{background:var(--green); box-shadow:0 8px 20px rgba(22,101,52,0.3);}
+
+  .geo-status{text-align:center; font-size:11.5px; color:var(--muted); margin-top:10px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; padding:7px 6px; font-size:10.5px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--line);}
+  td{padding:8px 6px; border-bottom:1px solid var(--line);}
+
+  .abono-item{border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;}
+  .abono-item .linha1{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
+  .abono-item .data{font-weight:700; font-family:'IBM Plex Mono',monospace;}
+  .abono-item .motivo{font-size:12.5px; color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="brand">PontoCerto<small>bater ponto pelo celular</small></div>
+    <label>Usuário</label>
+    <input id="login-user" autocomplete="username" placeholder="seu.usuario">
+    <label>Senha</label>
+    <input id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button id="btn-login">Entrar</button>
+    <div id="login-msg"></div>
+    <details class="api-toggle">
+      <summary>Endereço da API (avançado)</summary>
+      <input id="login-api" value="/api">
+    </details>
+  </div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div><div class="brand">PontoCerto</div><div class="who" id="who-label"></div></div>
+    <button id="btn-logout">Sair</button>
+  </header>
+  <main id="main"></main>
+  <nav class="tabbar">
+    <button data-tab="ponto" class="active"><span class="ic">⏱</span>Ponto</button>
+    <button data-tab="abono"><span class="ic">📝</span>Abono</button>
+    <button data-tab="cartao"><span class="ic">📅</span>Cartão</button>
+    <button data-tab="conta"><span class="ic">👤</span>Conta</button>
+  </nav>
+</div>
+
+<script>
+/* ============================================================
+   API
+   ============================================================ */
+let API_BASE = '/api';
+let TOKEN = null;
+let PERFIL = null;
+let MEU_ID = null;
+
+async function apiFetch(path, options = {}) {
+  const headers = options.headers ? { ...options.headers } : {};
+  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
+  if (options.body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (res.status === 204) return null;
+  let data; try { data = await res.json(); } catch (e) { data = null; }
+  if (!res.ok) throw new Error((data && data.erro) || `Erro ${res.status}`);
+  return data;
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+async function doLogin(){
+  const login = document.getElementById('login-user').value.trim();
+  const senha = document.getElementById('login-pass').value;
+  API_BASE = document.getElementById('login-api').value.trim() || '/api';
+  const btn = document.getElementById('btn-login');
+  const msgEl = document.getElementById('login-msg');
+  msgEl.innerHTML = '';
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  try{
+    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ login, senha }) });
+    TOKEN = data.token; PERFIL = data.perfil; MEU_ID = data.colaboradorId || null;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('who-label').textContent = `${login} · ${PERFIL}`;
+    if (!MEU_ID) {
+      msgEl.innerHTML = ''; // segue mesmo assim, mas a tela de ponto vai avisar
+    }
+    render();
+  }catch(err){
+    msgEl.innerHTML = `<div class="login-err">${err.message.includes('fetch') ? 'Não foi possível conectar à API.' : err.message}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+document.getElementById('btn-logout').addEventListener('click', ()=>{
+  TOKEN = null; PERFIL = null; MEU_ID = null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+});
+
+/* ============================================================
+   NAV
+   ============================================================ */
+let currentTab = 'ponto';
+document.querySelectorAll('nav.tabbar button[data-tab]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    render();
+  });
+});
+
+const main = document.getElementById('main');
+function render(){
+  main.innerHTML = '';
+  ({ ponto: renderPonto, abono: renderAbono, cartao: renderCartao, conta: renderConta })[currentTab]();
+}
+
+function showMsg(id, text, type){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  setTimeout(()=>{ if(el) el.innerHTML=''; }, 3500);
+}
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayYM(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; }
+
+/* ============================================================
+   TAB: BATER PONTO
+   ============================================================ */
+const ORDEM_SLOTS = ['e1','s1','e2','s2'];
+const ROTULO_SLOT = { e1:'Entrada', s1:'Saída', e2:'Volta', s2:'Saída' };
+const PROXIMA_ACAO = { e1:'Bater Entrada', s1:'Bater Saída (intervalo)', e2:'Bater Volta (intervalo)', s2:'Bater Saída' };
+
+let relogioInterval = null;
+
+function renderPonto(){
+  if (!MEU_ID) {
+    main.innerHTML = `<div class="card"><div class="empty">Seu usuário não está vinculado a um colaborador — fale com o RH para habilitar o registro de ponto.</div></div>`;
+    return;
+  }
+
+  main.innerHTML = `
+    <div class="clock-card">
+      <div class="relogio nums" id="relogio-agora">--:--:--</div>
+      <div class="data" id="data-hoje"></div>
+    </div>
+    <div class="slots" id="slots-hoje"><div class="loading" style="grid-column:span 2;">Carregando...</div></div>
+    <button class="btn-bater" id="btn-bater" disabled>Carregando...</button>
+    <div class="geo-status" id="geo-status"></div>
+    <div id="ponto-msg"></div>
+  `;
+
+  atualizarRelogio();
+  if (relogioInterval) clearInterval(relogioInterval);
+  relogioInterval = setInterval(atualizarRelogio, 1000);
+
+  carregarBatidasHoje();
+
+  document.getElementById('btn-bater').addEventListener('click', baterPonto);
+}
+
+function atualizarRelogio(){
+  const el = document.getElementById('relogio-agora');
+  if (!el) { clearInterval(relogioInterval); return; }
+  const agora = new Date();
+  el.textContent = agora.toLocaleTimeString('pt-BR');
+  document.getElementById('data-hoje').textContent = agora.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+}
+
+async function carregarBatidasHoje(){
+  const ym = todayYM();
+  let batidas = [];
+  try{
+    batidas = await apiFetch(`/batidas?colaboradorId=${MEU_ID}&mes=${ym}`);
+  }catch(err){
+    showMsg('ponto-msg', err.message, 'err');
+  }
+  const hojeStr = new Date().toISOString().slice(0,10);
+  const registroHoje = batidas.find(b => b.data === hojeStr) || {};
+  desenharSlots(registroHoje);
+}
+
+function desenharSlots(reg){
+  const proximoSlot = ORDEM_SLOTS.find(s => !reg[s]);
+  const cont = document.getElementById('slots-hoje');
+  cont.innerHTML = ORDEM_SLOTS.map(slot => {
+    const feito = !!reg[slot];
+    const proximo = slot === proximoSlot;
+    return `<div class="slot ${feito?'feito':'pendente'} ${proximo?'proximo':''}">
+      <div class="rotulo">${ROTULO_SLOT[slot]}</div>
+      <div class="hora nums">${feito ? reg[slot] : '--:--'}</div>
+    </div>`;
+  }).join('');
+
+  const btn = document.getElementById('btn-bater');
+  if (!proximoSlot) {
+    btn.disabled = true;
+    btn.classList.add('concluido');
+    btn.innerHTML = `✓ Ponto completo hoje`;
+  } else {
+    btn.disabled = false;
+    btn.classList.remove('concluido');
+    btn.innerHTML = `${PROXIMA_ACAO[proximoSlot]}<span class="sub">toque para registrar agora</span>`;
+  }
+}
+
+function obterLocalizacao(){
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, precisao: pos.coords.accuracy }),
+      () => resolve(null), // permissão negada ou indisponível -> segue sem geo
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  });
+}
+
+async function baterPonto(){
+  const btn = document.getElementById('btn-bater');
+  const geoStatus = document.getElementById('geo-status');
+  btn.disabled = true;
+  btn.innerHTML = 'Obtendo localização...';
+  geoStatus.textContent = '';
+
+  const geo = await obterLocalizacao();
+  geoStatus.textContent = geo ? `📍 Localização capturada (precisão ~${Math.round(geo.precisao)}m)` : '📍 Localização não disponível — batida será registrada sem GPS';
+
+  btn.innerHTML = 'Registrando...';
+  try{
+    const resultado = await apiFetch('/batidas/bater', { method:'POST', body: JSON.stringify(geo || {}) });
+    showMsg('ponto-msg', `${resultado.rotulo} registrada às ${resultado.hora}.`, 'ok');
+    if (navigator.vibrate) navigator.vibrate(80);
+    await carregarBatidasHoje();
+  }catch(err){
+    showMsg('ponto-msg', err.message, 'err');
+    await carregarBatidasHoje();
+  }
+}
+
+/* ============================================================
+   TAB: ABONO (self-service)
+   ============================================================ */
+async function renderAbono(){
+  main.innerHTML = `
+    <div class="page-title"><h1>Abono de Batidas</h1><p>Esqueceu de bater ou trabalhou externamente? Solicite aqui.</p></div>
+    <div class="card">
+      <label>Data</label><input type="date" id="ab-data">
+      <label>Motivo</label>
+      <select id="ab-tipo">
+        <option value="esquecimento">Esquecimento de batida</option>
+        <option value="trabalho_externo">Trabalho externo</option>
+        <option value="liberado_gerencia">Liberado pela gerência</option>
+        <option value="outro">Outro</option>
+      </select>
+      <label>Justificativa</label>
+      <textarea id="ab-just" rows="3" placeholder="Descreva rapidamente o que aconteceu"></textarea>
+      <div id="ab-msg"></div>
+      <button class="btn gold" id="btn-ab-enviar">Enviar solicitação</button>
+    </div>
+    <div class="page-title" style="margin-top:8px;"><h1 style="font-size:16px;">Minhas solicitações</h1></div>
+    <div id="ab-lista"><div class="loading">Carregando...</div></div>
+  `;
+  document.getElementById('ab-data').value = new Date().toISOString().slice(0,10);
+
+  document.getElementById('btn-ab-enviar').addEventListener('click', async ()=>{
+    const data = document.getElementById('ab-data').value;
+    const tipoMotivo = document.getElementById('ab-tipo').value;
+    const justificativa = document.getElementById('ab-just').value;
+    if(!data){ showMsg('ab-msg','Informe a data.','err'); return; }
+    try{
+      await apiFetch('/abonos', { method:'POST', body: JSON.stringify({ colaboradorId: MEU_ID, data, tipoMotivo, justificativa }) });
+      showMsg('ab-msg','Solicitação enviada.','ok');
+      document.getElementById('ab-just').value = '';
+      carregarListaAbonos();
+    }catch(err){ showMsg('ab-msg', err.message, 'err'); }
+  });
+
+  carregarListaAbonos();
+}
+
+async function carregarListaAbonos(){
+  const cont = document.getElementById('ab-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch(`/abonos?colaboradorId=${MEU_ID}`); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  const tiposLabel = {esquecimento:'Esquecimento', liberado_gerencia:'Liberado gerência', trabalho_externo:'Trabalho externo', outro:'Outro'};
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhuma solicitação ainda.</div>` :
+    lista.map(a=>{
+      const badge = a.status==='aprovado'?'green':a.status==='reprovado'?'red':'amber';
+      return `<div class="abono-item">
+        <div class="linha1"><span class="data nums">${a.data}</span><span class="badge ${badge}">${a.status}</span></div>
+        <div class="motivo">${tiposLabel[a.tipoMotivo]}${a.justificativa?' — '+a.justificativa:''}</div>
+      </div>`;
+    }).join('');
+}
+
+/* ============================================================
+   TAB: CARTÃO (visão simplificada do mês, mobile)
+   ============================================================ */
+async function renderCartao(){
+  const ym = todayYM();
+  main.innerHTML = `
+    <div class="page-title"><h1>Meu Cartão de Ponto</h1><p>${new Date().toLocaleDateString('pt-BR',{month:'long', year:'numeric'})}</p></div>
+    <div id="cartao-resumo"><div class="loading">Carregando...</div></div>
+  `;
+  if (!MEU_ID) { document.getElementById('cartao-resumo').innerHTML = `<div class="empty">Sem colaborador vinculado.</div>`; return; }
+
+  let dados;
+  try{ dados = await apiFetch(`/cartao-ponto/${MEU_ID}?mes=${ym}`); }
+  catch(err){ document.getElementById('cartao-resumo').innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+
+  const diasComRegistro = dados.dias.filter(d => d.batida.e1 || d.batida.s1 || d.batida.e2 || d.batida.s2 || d.falta || d.ausencia);
+
+  document.getElementById('cartao-resumo').innerHTML = `
+    <div class="card" style="display:flex; justify-content:space-around; text-align:center;">
+      <div><div class="nums" style="font-size:18px;font-weight:700;">${dados.totais.trabalhado}</div><div style="font-size:11px;color:var(--muted);">Trabalhado</div></div>
+      <div><div class="nums" style="font-size:18px;font-weight:700;color:var(--red);">${dados.totais.atraso}</div><div style="font-size:11px;color:var(--muted);">Atraso</div></div>
+      <div><div class="nums" style="font-size:18px;font-weight:700;color:var(--green);">${dados.totais.extra}</div><div style="font-size:11px;color:var(--muted);">H. Extra</div></div>
+      <div><div class="nums" style="font-size:18px;font-weight:700;">${dados.totais.faltas}</div><div style="font-size:11px;color:var(--muted);">Faltas</div></div>
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Dia</th><th>Entrada</th><th>Saída</th><th>Status</th></tr></thead><tbody>
+        ${diasComRegistro.map(d=>{
+          const status = d.falta?'<span class="badge red">Falta</span>':d.ausencia?`<span class="badge gray">${d.ausencia.tipo}</span>`:d.abonado?'<span class="badge green">Abonado</span>':(d.minutosAtraso>0?`<span class="badge amber">Atraso</span>`:'<span class="badge green">OK</span>');
+          return `<tr><td class="nums">${d.data.slice(8,10)}/${d.data.slice(5,7)}</td><td class="nums">${d.batida.e1||'—'}</td><td class="nums">${d.batida.s2||'—'}</td><td>${status}</td></tr>`;
+        }).join('')}
+      </tbody></table>
+    </div>
+  `;
+}
+
+/* ============================================================
+   TAB: CONTA
+   ============================================================ */
+function renderConta(){
+  main.innerHTML = `
+    <div class="page-title"><h1>Minha Conta</h1><p>Troque sua senha de acesso</p></div>
+    <div class="card">
+      <label>Senha atual</label><input type="password" id="conta-atual">
+      <label>Nova senha</label><input type="password" id="conta-nova">
+      <label>Confirmar nova senha</label><input type="password" id="conta-confirma">
+      <div id="conta-msg"></div>
+      <button class="btn gold" id="btn-trocar-senha">Salvar nova senha</button>
+    </div>
+  `;
+  document.getElementById('btn-trocar-senha').addEventListener('click', async ()=>{
+    const senhaAtual = document.getElementById('conta-atual').value;
+    const novaSenha = document.getElementById('conta-nova').value;
+    const confirma = document.getElementById('conta-confirma').value;
+    if(!senhaAtual || !novaSenha){ showMsg('conta-msg','Preencha todos os campos.','err'); return; }
+    if(novaSenha !== confirma){ showMsg('conta-msg','A confirmação não confere.','err'); return; }
+    try{
+      await apiFetch('/usuarios/me/senha', { method:'PATCH', body: JSON.stringify({ senhaAtual, novaSenha }) });
+      showMsg('conta-msg','Senha alterada com sucesso.','ok');
+      ['conta-atual','conta-nova','conta-confirma'].forEach(id=>document.getElementById(id).value='');
+    }catch(err){ showMsg('conta-msg', err.message, 'err'); }
+  });
+}
+
+/* ============================================================
+   PWA: registra o service worker (silenciosamente, se disponível)
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

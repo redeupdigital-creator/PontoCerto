@@ -1,0 +1,254 @@
+const express = require('express');
+const { Op } = require('sequelize');
+const { Colaborador, Ferias, Atestado, Ocorrencia } = require('../models');
+const { calcularMes } = require('../services/calculo');
+const { autenticar, permitir, idsDaEquipe } = require('../middleware/auth');
+const { gerarXlsx, gerarPdf } = require('../services/exportacao');
+
+const router = express.Router();
+router.use(autenticar);
+// Relatórios são ferramenta de gestão: colaborador comum não tem acesso direto
+// (ele já vê seus próprios dados pelo cartão de ponto e pelas listagens de ausências/abonos).
+router.use(permitir('gestor', 'rh', 'admin'));
+
+// Resolve o filtro de colaboradorId(s) aplicável: gestor só pode ver a própria
+// equipe (mesmo se não informar colaboradorId, o relatório já vem restrito a ela);
+// RH/admin veem tudo, com filtro opcional.
+async function resolverFiltroColaborador(req) {
+  if (req.usuario.perfil === 'gestor') {
+    const equipe = await idsDaEquipe(req.usuario.colaboradorId);
+    const permitidos = [req.usuario.colaboradorId, ...equipe];
+    if (req.query.colaboradorId) {
+      if (!permitidos.includes(req.query.colaboradorId)) return { negado: true };
+      return { ids: [req.query.colaboradorId] };
+    }
+    return { ids: permitidos };
+  }
+  if (req.query.colaboradorId) return { ids: [req.query.colaboradorId] };
+  return { ids: null }; // sem filtro = todos (rh/admin)
+}
+
+// ---- Funções que montam as LINHAS de cada relatório (reaproveitadas por
+// JSON e pelas exportações em Excel/PDF, para garantir que o dado exportado
+// é sempre exatamente o mesmo que aparece na tela). ----
+
+async function linhasFaltaAtraso(req) {
+  const { mes } = req.query;
+  if (!mes) return { erro: 'Informe mes (YYYY-MM)' };
+  const [ano, mesNum] = mes.split('-').map(Number);
+
+  const filtro = await resolverFiltroColaborador(req);
+  if (filtro.negado) return { negado: true };
+  const where = filtro.ids ? { id: { [Op.in]: filtro.ids } } : {};
+  const colaboradores = await Colaborador.findAll({ where });
+
+  const linhas = [];
+  for (const colaborador of colaboradores) {
+    // eslint-disable-next-line no-await-in-loop
+    const { dias } = await calcularMes(colaborador, ano, mesNum);
+    dias.forEach((dia) => {
+      if (dia.falta || dia.minutosAtraso > 0) {
+        linhas.push({
+          colaboradorId: colaborador.id,
+          colaborador: colaborador.nome,
+          matricula: colaborador.matricula,
+          data: dia.data,
+          ocorrencia: dia.falta ? 'falta' : 'atraso',
+          minutos: dia.falta ? null : dia.minutosAtraso,
+          horas: dia.falta ? null : dia.horasAtraso,
+        });
+      }
+    });
+  }
+  return { mes, linhas };
+}
+
+async function linhasFerias(req) {
+  const filtro = await resolverFiltroColaborador(req);
+  if (filtro.negado) return { negado: true };
+  const where = {};
+  if (filtro.ids) where.colaboradorId = { [Op.in]: filtro.ids };
+  if (req.query.status) where.status = req.query.status;
+  const registros = await Ferias.findAll({
+    where,
+    include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
+    order: [['dataInicioGozo', 'DESC']],
+  });
+  const linhas = registros.map((r) => {
+    const p = r.get({ plain: true });
+    return {
+      colaborador: p.Colaborador ? p.Colaborador.nome : '—',
+      matricula: p.Colaborador ? p.Colaborador.matricula : '—',
+      periodoAquisitivo: `${p.periodoAquisitivoInicio || '—'} a ${p.periodoAquisitivoFim || '—'}`,
+      gozo: `${p.dataInicioGozo} a ${p.dataFimGozo}`,
+      diasAbonoPecuniario: p.diasAbonoPecuniario,
+      status: p.status,
+    };
+  });
+  return { linhas };
+}
+
+async function linhasOcorrencias(req) {
+  const filtro = await resolverFiltroColaborador(req);
+  if (filtro.negado) return { negado: true };
+  const where = {};
+  if (filtro.ids) where.colaboradorId = { [Op.in]: filtro.ids };
+  if (req.query.tipo) where.tipo = req.query.tipo;
+  const registros = await Ocorrencia.findAll({
+    where,
+    include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
+    order: [['dataInicio', 'DESC']],
+  });
+  const linhas = registros.map((r) => {
+    const p = r.get({ plain: true });
+    return {
+      colaborador: p.Colaborador ? p.Colaborador.nome : '—',
+      matricula: p.Colaborador ? p.Colaborador.matricula : '—',
+      tipo: p.tipo,
+      periodo: `${p.dataInicio}${p.dataFim ? ' a ' + p.dataFim : ''}`,
+      motivo: p.motivo || '—',
+    };
+  });
+  return { linhas };
+}
+
+async function linhasAtestados(req) {
+  const filtro = await resolverFiltroColaborador(req);
+  if (filtro.negado) return { negado: true };
+  const where = {};
+  if (filtro.ids) where.colaboradorId = { [Op.in]: filtro.ids };
+  const registros = await Atestado.findAll({
+    where,
+    include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
+    order: [['dataInicio', 'DESC']],
+  });
+  const linhas = registros.map((r) => {
+    const p = r.get({ plain: true });
+    const dias = Math.round((new Date(p.dataFim) - new Date(p.dataInicio)) / 86400000) + 1;
+    return {
+      colaborador: p.Colaborador ? p.Colaborador.nome : '—',
+      matricula: p.Colaborador ? p.Colaborador.matricula : '—',
+      periodo: `${p.dataInicio} a ${p.dataFim}`,
+      dias,
+      exigeAfastamentoINSS: dias > 15 ? 'sim' : 'não',
+      cid: p.cid || '—',
+      medico: p.medico || '—',
+    };
+  });
+  return { linhas };
+}
+
+// Configuração de colunas por tipo de relatório, usada na exportação.
+const RELATORIOS = {
+  'falta-atraso': {
+    titulo: 'Relatório de Falta e Atraso',
+    obterLinhas: linhasFaltaAtraso,
+    colunas: [
+      { chave: 'colaborador', rotulo: 'Colaborador', largura: 28 },
+      { chave: 'matricula', rotulo: 'Matrícula', largura: 14 },
+      { chave: 'data', rotulo: 'Data', largura: 14 },
+      { chave: 'ocorrencia', rotulo: 'Ocorrência', largura: 14 },
+      { chave: 'horas', rotulo: 'Minutos', largura: 12 },
+    ],
+  },
+  ferias: {
+    titulo: 'Relatório de Férias',
+    obterLinhas: linhasFerias,
+    colunas: [
+      { chave: 'colaborador', rotulo: 'Colaborador', largura: 28 },
+      { chave: 'matricula', rotulo: 'Matrícula', largura: 14 },
+      { chave: 'periodoAquisitivo', rotulo: 'Período Aquisitivo', largura: 24 },
+      { chave: 'gozo', rotulo: 'Período de Gozo', largura: 24 },
+      { chave: 'diasAbonoPecuniario', rotulo: 'Abono (dias)', largura: 14 },
+      { chave: 'status', rotulo: 'Status', largura: 14 },
+    ],
+  },
+  ocorrencias: {
+    titulo: 'Relatório de Suspensão/Advertência',
+    obterLinhas: linhasOcorrencias,
+    colunas: [
+      { chave: 'colaborador', rotulo: 'Colaborador', largura: 28 },
+      { chave: 'matricula', rotulo: 'Matrícula', largura: 14 },
+      { chave: 'tipo', rotulo: 'Tipo', largura: 16 },
+      { chave: 'periodo', rotulo: 'Período', largura: 20 },
+      { chave: 'motivo', rotulo: 'Motivo', largura: 40 },
+    ],
+  },
+  atestados: {
+    titulo: 'Relatório de Atestado',
+    obterLinhas: linhasAtestados,
+    colunas: [
+      { chave: 'colaborador', rotulo: 'Colaborador', largura: 28 },
+      { chave: 'matricula', rotulo: 'Matrícula', largura: 14 },
+      { chave: 'periodo', rotulo: 'Período', largura: 22 },
+      { chave: 'dias', rotulo: 'Dias', largura: 10 },
+      { chave: 'exigeAfastamentoINSS', rotulo: 'Afast. INSS (>15d)', largura: 18 },
+      { chave: 'cid', rotulo: 'CID', largura: 12 },
+      { chave: 'medico', rotulo: 'Médico', largura: 20 },
+    ],
+  },
+};
+
+// ---- Rotas JSON (usadas pela tela) ----
+
+router.get('/falta-atraso', async (req, res) => {
+  const r = await linhasFaltaAtraso(req);
+  if (r.erro) return res.status(400).json({ erro: r.erro });
+  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
+  res.json({ mes: r.mes, total: r.linhas.length, linhas: r.linhas });
+});
+
+router.get('/ferias', async (req, res) => {
+  const r = await linhasFerias(req);
+  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
+  res.json(r.linhas);
+});
+
+router.get('/ocorrencias', async (req, res) => {
+  const r = await linhasOcorrencias(req);
+  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
+  res.json(r.linhas);
+});
+
+router.get('/atestados', async (req, res) => {
+  const r = await linhasAtestados(req);
+  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
+  res.json(r.linhas);
+});
+
+// ---- Rota de exportação: GET /api/relatorios/:tipo/exportar?formato=xlsx|pdf&mes=... ----
+router.get('/:tipo/exportar', async (req, res) => {
+  const config = RELATORIOS[req.params.tipo];
+  if (!config) return res.status(404).json({ erro: 'Tipo de relatório desconhecido' });
+
+  const formato = (req.query.formato || 'xlsx').toLowerCase();
+  if (!['xlsx', 'pdf'].includes(formato)) {
+    return res.status(400).json({ erro: 'Formato inválido. Use "xlsx" ou "pdf".' });
+  }
+
+  const resultado = await config.obterLinhas(req);
+  if (resultado.erro) return res.status(400).json({ erro: resultado.erro });
+  if (resultado.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
+
+  const subtitulo = resultado.mes ? `Referência: ${resultado.mes}` : `Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
+  const nomeArquivo = `${req.params.tipo}-${resultado.mes || new Date().toISOString().slice(0, 10)}`;
+
+  try {
+    if (formato === 'xlsx') {
+      const buffer = await gerarXlsx({ titulo: config.titulo, subtitulo, colunas: config.colunas, linhas: resultado.linhas });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}.xlsx"`);
+      return res.send(Buffer.from(buffer));
+    }
+    const buffer = await gerarPdf({ titulo: config.titulo, subtitulo, colunas: config.colunas, linhas: resultado.linhas });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}.pdf"`);
+    return res.send(buffer);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[exportacao] falha ao gerar arquivo:', err);
+    return res.status(500).json({ erro: 'Falha ao gerar o arquivo de exportação' });
+  }
+});
+
+module.exports = router;

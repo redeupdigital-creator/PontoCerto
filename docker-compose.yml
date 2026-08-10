@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ponto_certo
+      POSTGRES_USER: ponto
+      POSTGRES_PASSWORD: ponto_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ponto_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ponto -d ponto_certo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_DIALECT: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ponto_certo
+      DB_USER: ponto
+      DB_PASS: ponto_dev_password
+      JWT_SECRET: troque-este-segredo-em-producao
+      JWT_EXPIRES_IN: 8h
+      PORT: 3000
+      SKIP_SYNC: "true"
+      # Notificações por e-mail (opcional) — sem isso, ficam só no centro in-app
+      SMTP_HOST: ""
+      NOTIFICACAO_GESTOR_EMAIL: ""
+    ports:
+      - "3000:3000"
+    volumes:
+      - ponto_uploads:/app/uploads
+
+volumes:
+  ponto_pg_data:
+  ponto_uploads:
