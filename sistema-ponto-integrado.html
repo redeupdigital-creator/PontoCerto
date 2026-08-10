@@ -18,72 +18,104 @@
   h1,h2,h3,.brand{font-family:'Space Grotesk',sans-serif;}
   .nums{font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
 
-  /* ---------- Login screen (split-screen, moderno) ---------- */
-  #login-screen{ position:fixed; top:0; right:0; bottom:0; left:0; display:grid; grid-template-columns: 46% 54%; }
+  /* ---------- Login screen (estilo FiscalOS: dark, split-screen, cards flutuantes) ---------- */
+  #login-screen{
+    --fos-bg-deep:#0A1730; --fos-bg-mid:#142754; --fos-bg-black:#05070C; --fos-card-bg:#12151F; --fos-border:rgba(255,255,255,.08);
+    --fos-muted:#94A3B8; --fos-cyan:#22D3EE; --fos-purple:#8B5CF6; --fos-teal:#2DD4BF; --fos-amber:#F59E0B; --fos-green:#34D399; --fos-red:#F87171;
+    position:fixed; top:0; right:0; bottom:0; left:0; display:grid; grid-template-columns:52% 48%;
+  }
 
   .login-visual{
-    position:relative; overflow:hidden; background:linear-gradient(155deg, var(--navy-dark) 0%, var(--navy) 60%, #24425F 100%);
-    display:flex; align-items:center; padding:0 56px;
+    position:relative; overflow:hidden; padding:56px 64px; display:flex; flex-direction:column; justify-content:center; color:#fff;
+    background:
+      radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px) 0 0/22px 22px,
+      linear-gradient(150deg, var(--fos-bg-mid) 0%, var(--fos-bg-deep) 55%, var(--fos-bg-black) 100%);
   }
-  .login-visual-blob{ position:absolute; border-radius:50%; filter:blur(70px); opacity:.55; pointer-events:none; }
-  .blob-a{ width:340px; height:340px; background:var(--gold); top:-90px; right:-90px; opacity:.35; }
-  .blob-b{ width:280px; height:280px; background:#6E8FB0; bottom:-80px; left:-60px; opacity:.4; }
-  .login-visual-content{ position:relative; z-index:1; color:#fff; max-width:420px; }
-  .login-visual-brand{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:18px; letter-spacing:.3px; margin-bottom:48px; display:flex; align-items:center; gap:8px; }
-  .login-visual-brand::before{ content:''; width:9px; height:9px; border-radius:50%; background:var(--gold); display:inline-block; }
-  .login-visual-heading{ font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:700; line-height:1.2; margin:0 0 16px; }
-  .login-visual-sub{ font-size:14.5px; line-height:1.6; color:#C9D2DC; margin:0 0 36px; }
-  .login-visual-features{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:16px; }
-  .login-visual-features li{ display:flex; align-items:center; gap:12px; font-size:13.5px; color:#DCE3EA; }
-  .login-visual-features .lv-icon{
-    width:34px; height:34px; flex-shrink:0; border-radius:10px; background:rgba(255,255,255,.1);
-    display:flex; align-items:center; justify-content:center; font-size:15px; backdrop-filter:blur(4px);
-  }
+  .lv-logo{ display:flex; align-items:center; gap:12px; margin-bottom:30px; }
+  .lv-logo-icon{ width:38px; height:38px; border:2px solid var(--fos-teal); border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--fos-teal); font-size:18px; font-weight:700; flex-shrink:0; }
+  .lv-logo-title{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; }
+  .lv-logo-sub{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:1.3px; color:var(--fos-muted); margin-top:2px; }
 
-  .login-form-panel{ background:#fff; display:flex; align-items:center; justify-content:center; padding:32px; overflow-y:auto; }
-  .login-card{ width:100%; max-width:360px; animation: loginRise .5s ease both; }
+  .lv-badge{ display:inline-block; align-self:flex-start; background:rgba(34,211,238,.12); border:1px solid rgba(34,211,238,.3); color:var(--fos-cyan); font-size:10.5px; font-weight:700; letter-spacing:.6px; padding:5px 13px; border-radius:999px; margin-bottom:22px; text-transform:uppercase; }
+
+  .lv-heading{ font-family:'Space Grotesk',sans-serif; font-size:35px; font-weight:700; line-height:1.18; margin:0 0 16px; max-width:480px; }
+  .lv-sub{ font-size:14px; line-height:1.65; color:var(--fos-muted); max-width:440px; margin:0 0 42px; }
+
+  .lv-cards{ position:relative; height:175px; }
+  .lv-card{
+    position:absolute; display:flex; align-items:center; gap:10px; background:rgba(18,21,31,.75); border:1px solid var(--fos-border);
+    border-radius:12px; padding:10px 14px; backdrop-filter:blur(10px); box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .lv-card-icon{ width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+  .lv-card-label{ font-size:10px; color:var(--fos-muted); margin-bottom:2px; }
+  .lv-card-value{ font-size:15px; font-weight:700; color:#fff; font-family:'IBM Plex Mono',monospace; }
+  .lv-card-value .up{ font-size:10.5px; color:var(--fos-green); font-weight:600; margin-left:3px; }
+  .lv-card-value .down{ font-size:10.5px; color:var(--fos-amber); font-weight:600; margin-left:3px; }
+  .lv-card-1{ left:0; top:2px; }
+  .lv-card-2{ left:130px; top:0; opacity:.85; transform:scale(.95); }
+  .lv-card-3{ left:250px; top:36px; }
+  .lv-card-4{ left:10px; top:96px; }
+  .lv-card-5{ left:270px; top:122px; }
+
+  .login-form-panel{ position:relative; background:var(--fos-bg-black); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; overflow-y:auto; }
+  .btn-tema{ position:absolute; top:28px; right:32px; background:rgba(255,255,255,.06); border:1px solid var(--fos-border); color:#fff; font-size:12px; padding:8px 16px; border-radius:999px; cursor:pointer; font-family:inherit; }
+  .btn-tema:hover{ background:rgba(255,255,255,.1); }
+
+  .login-card{ width:100%; max-width:380px; background:var(--fos-card-bg); border:1px solid var(--fos-border); border-radius:18px; padding:36px 32px; box-shadow:0 20px 60px rgba(0,0,0,.5); animation: loginRise .5s ease both; }
   @keyframes loginRise{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
-  .login-card-brand{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase; margin-bottom:28px; }
-  .login-card h2{ font-size:25px; margin:0 0 6px; color:var(--navy-dark); }
-  .login-card-sub{ font-size:13.5px; color:var(--muted); margin:0 0 32px; }
+  .login-card h2{ font-family:'Space Grotesk',sans-serif; font-size:22px; margin:0 0 6px; color:#fff; }
+  .login-card-sub{ font-size:13px; color:var(--fos-muted); margin:0 0 26px; }
 
-  .field-float{ position:relative; margin-bottom:18px; }
-  .field-float input{
-    width:100%; padding:17px 14px 9px; border:1.5px solid var(--line); border-radius:11px;
-    font-size:15px; font-family:inherit; background:#fff; color:var(--text); transition:border-color .15s;
+  .fl-label{ display:block; font-size:12px; color:var(--fos-muted); margin:0 0 6px; font-weight:500; }
+  .fl-input-wrap{ position:relative; margin-bottom:18px; }
+  .fl-input-wrap input{
+    width:100%; padding:12px 14px 12px 40px; border:1px solid var(--fos-border); border-radius:10px;
+    background:rgba(255,255,255,.03); color:#fff; font-size:14px; font-family:inherit; transition:border-color .15s;
   }
-  .field-float input:focus{ outline:none; border-color:var(--navy); }
-  .field-float label{
-    position:absolute; left:13px; top:16px; font-size:15px; color:var(--muted); pointer-events:none;
-    background:#fff; padding:0 4px; transition: all .15s ease;
-  }
-  .field-float input:focus + label,
-  .field-float input:not(:placeholder-shown) + label{
-    top:-8px; font-size:11px; font-weight:600; color:var(--navy); left:10px;
-  }
-  .field-pass input{ padding-right:44px; }
-  .toggle-pass{
-    position:absolute; right:6px; top:8px; background:none; border:none; cursor:pointer; padding:8px;
-    font-size:15px; color:var(--muted); line-height:1;
-  }
-  .toggle-pass:hover{ color:var(--navy); }
+  .fl-input-wrap input::placeholder{ color:#5B6472; }
+  .fl-input-wrap input:focus{ outline:none; border-color:var(--fos-cyan); }
+  .fl-icon{ position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:14px; opacity:.75; }
+  .fl-input-wrap .toggle-pass{ position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--fos-muted); cursor:pointer; padding:6px; font-size:14px; }
+  .fl-input-wrap .toggle-pass:hover{ color:#fff; }
+
+  .fl-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; font-size:12.5px; }
+  .fl-remember{ display:flex; align-items:center; gap:6px; color:var(--fos-muted); cursor:pointer; }
+  .fl-remember input{ width:auto; margin:0; accent-color:var(--fos-cyan); }
+  .fl-row a{ color:var(--fos-cyan); text-decoration:none; font-weight:500; cursor:pointer; }
+  .fl-row a:hover{ text-decoration:underline; }
 
   .btn-entrar{
-    width:100%; margin-top:6px; padding:15px; border:none; border-radius:12px; cursor:pointer;
-    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%); color:#fff;
-    font-weight:700; font-size:15px; font-family:inherit; box-shadow:0 10px 22px rgba(21,42,61,.28);
+    width:100%; padding:13px; border:none; border-radius:10px; cursor:pointer; font-weight:700; font-size:14.5px; font-family:inherit; color:#fff;
+    background:linear-gradient(90deg, var(--fos-cyan) 0%, var(--fos-purple) 100%); box-shadow:0 10px 26px rgba(139,92,246,.3);
     transition: transform .15s ease, box-shadow .15s ease;
   }
-  .btn-entrar:hover{ transform:translateY(-2px); box-shadow:0 14px 28px rgba(21,42,61,.34); }
+  .btn-entrar:hover{ transform:translateY(-2px); box-shadow:0 14px 32px rgba(139,92,246,.4); }
   .btn-entrar:active{ transform:translateY(0); }
   .btn-entrar:disabled{ opacity:.6; transform:none; box-shadow:none; cursor:default; }
 
-  .api-toggle{ margin-top:20px; }
-  .api-toggle summary{ font-size:11.5px; color:var(--muted); cursor:pointer; user-select:none; }
-  .api-toggle input{ margin-top:10px; width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-size:11.5px; color:var(--muted); }
-  .login-err{ background:var(--red-bg); color:var(--red); font-size:12.5px; padding:9px 11px; border-radius:9px; margin-top:14px; }
+  .fl-security{ display:flex; align-items:flex-start; gap:8px; font-size:11.5px; color:var(--fos-muted); margin-top:20px; line-height:1.5; }
 
-  @media (max-width: 860px){
+  .api-toggle{ margin-top:16px; }
+  .api-toggle summary{ font-size:11px; color:var(--fos-muted); cursor:pointer; user-select:none; }
+  .api-toggle input{ margin-top:8px; width:100%; padding:8px 10px; border:1px solid var(--fos-border); border-radius:8px; font-size:11px; background:rgba(255,255,255,.03); color:var(--fos-muted); }
+
+  .login-footer{ font-size:11px; color:#5B6472; margin-top:24px; text-align:center; }
+
+  .login-err{ background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.3); color:var(--fos-red); font-size:12.5px; padding:9px 12px; border-radius:9px; margin-top:14px; }
+  .login-ok{ background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.3); color:var(--fos-green); font-size:12.5px; padding:9px 12px; border-radius:9px; margin-top:14px; }
+
+  /* Tema claro (alternativa acionada pelo botão no canto) */
+  #login-screen.tema-claro{ --fos-bg-deep:#EDF1F7; --fos-bg-mid:#F7FAFC; --fos-bg-black:#FFFFFF; --fos-card-bg:#FFFFFF; --fos-border:#E2E8F0; --fos-muted:#64748B; }
+  #login-screen.tema-claro .login-visual{ color:#1F2937; }
+  #login-screen.tema-claro .login-card{ box-shadow:0 20px 50px rgba(15,23,42,.1); }
+  #login-screen.tema-claro .login-card h2{ color:#0F172A; }
+  #login-screen.tema-claro .fl-input-wrap input{ background:#fff; color:#0F172A; }
+  #login-screen.tema-claro .lv-card{ background:rgba(255,255,255,.85); }
+  #login-screen.tema-claro .lv-card-value{ color:#0F172A; }
+  #login-screen.tema-claro .btn-tema{ background:rgba(15,23,42,.06); border-color:rgba(15,23,42,.12); color:#0F172A; }
+  #login-screen.tema-claro .login-footer{ color:#94A3B8; }
+
+  @media (max-width: 900px){
     #login-screen{ grid-template-columns: 1fr; }
     .login-visual{ display:none; }
     .login-form-panel{ padding:24px; }
@@ -214,47 +246,77 @@
 </head>
 <body>
 
-<div id="login-screen">
+<div id="login-screen" class="tema-escuro">
   <div class="login-visual">
-    <div class="login-visual-blob blob-a"></div>
-    <div class="login-visual-blob blob-b"></div>
-    <div class="login-visual-content">
-      <div class="login-visual-brand">PontoCerto</div>
-      <h1 class="login-visual-heading">Controle de ponto,<br>do jeito certo.</h1>
-      <p class="login-visual-sub">Bata o ponto, acompanhe relatórios e gerencie sua equipe em um só lugar — com segurança e trilha de auditoria em cada registro.</p>
-      <ul class="login-visual-features">
-        <li><span class="lv-icon">⏱</span> Ponto com geolocalização, direto do celular</li>
-        <li><span class="lv-icon">📊</span> Relatórios de falta, atraso, férias e atestado</li>
-        <li><span class="lv-icon">🔒</span> Acesso por perfil, com trilha de auditoria</li>
-      </ul>
+    <div class="lv-logo">
+      <div class="lv-logo-icon">✓</div>
+      <div>
+        <div class="lv-logo-title">PontoCerto</div>
+        <div class="lv-logo-sub">CONTROLE DE PONTO INTELIGENTE</div>
+      </div>
+    </div>
+    <div class="lv-badge">Sistema Completo</div>
+    <h1 class="lv-heading">Gerencie toda a jornada da sua equipe em uma única plataforma.</h1>
+    <p class="lv-sub">Bata o ponto com GPS, controle abonos, férias e atestados, gere relatórios e mantenha tudo auditado — em um só lugar.</p>
+    <div class="lv-cards">
+      <div class="lv-card lv-card-1">
+        <div class="lv-card-icon" style="background:rgba(34,211,238,.15); color:#22D3EE;">⏱</div>
+        <div><div class="lv-card-label">Batidas Hoje</div><div class="lv-card-value">214 <span class="up">+8%</span></div></div>
+      </div>
+      <div class="lv-card lv-card-2">
+        <div class="lv-card-icon" style="background:rgba(139,92,246,.15); color:#8B5CF6;">👥</div>
+        <div><div class="lv-card-label">Colaboradores Ativos</div><div class="lv-card-value">42 <span class="up">+5%</span></div></div>
+      </div>
+      <div class="lv-card lv-card-3">
+        <div class="lv-card-icon" style="background:rgba(45,212,191,.15); color:#2DD4BF;">📄</div>
+        <div><div class="lv-card-label">Relatórios Gerados</div><div class="lv-card-value">128 <span class="up">+12%</span></div></div>
+      </div>
+      <div class="lv-card lv-card-4">
+        <div class="lv-card-icon" style="background:rgba(245,158,11,.15); color:#F59E0B;">🕒</div>
+        <div><div class="lv-card-label">Abonos Pendentes</div><div class="lv-card-value">6 <span class="down">-2</span></div></div>
+      </div>
+      <div class="lv-card lv-card-5">
+        <div class="lv-card-icon" style="background:rgba(34,211,238,.15); color:#22D3EE;">📍</div>
+        <div><div class="lv-card-label">Ponto com GPS</div><div class="lv-card-value" style="font-size:13px; color:#2DD4BF;">Ativo</div></div>
+      </div>
     </div>
   </div>
 
   <div class="login-form-panel">
+    <button type="button" id="btn-toggle-tema" class="btn-tema">🌞 Tema claro</button>
     <div class="login-card">
-      <div class="login-card-brand">PontoCerto</div>
-      <h2>Bem-vindo de volta</h2>
-      <p class="login-card-sub">Entre com suas credenciais para acessar o painel.</p>
+      <h2>Bem-vindo de volta!</h2>
+      <p class="login-card-sub">Entre para acessar o painel do PontoCerto.</p>
 
-      <div class="field-float">
-        <input id="login-user" placeholder=" " value="admin" autocomplete="username">
-        <label>Usuário</label>
+      <label class="fl-label">Usuário</label>
+      <div class="fl-input-wrap">
+        <span class="fl-icon">👤</span>
+        <input id="login-user" value="admin" autocomplete="username" placeholder="seu.usuario">
       </div>
 
-      <div class="field-float field-pass">
-        <input id="login-pass" type="password" placeholder=" " value="admin123" autocomplete="current-password">
-        <label>Senha</label>
+      <label class="fl-label">Senha</label>
+      <div class="fl-input-wrap">
+        <span class="fl-icon">🔒</span>
+        <input id="login-pass" type="password" value="admin123" autocomplete="current-password" placeholder="Digite sua senha">
         <button type="button" id="btn-toggle-senha" class="toggle-pass" aria-label="Mostrar senha">👁</button>
       </div>
 
-      <button id="btn-login" class="btn-entrar">Entrar</button>
+      <div class="fl-row">
+        <label class="fl-remember"><input type="checkbox" checked> Lembrar-me</label>
+        <a id="link-esqueci">Esqueci minha senha</a>
+      </div>
+
+      <button id="btn-login" class="btn-entrar">🔒 Entrar</button>
       <div id="login-msg"></div>
+
+      <div class="fl-security">🛡️ Seus dados são protegidos com autenticação JWT e controle de acesso por perfil.</div>
 
       <details class="api-toggle">
         <summary>Endereço da API (avançado)</summary>
         <input id="login-api" value="/api">
       </details>
     </div>
+    <div class="login-footer">© 2026 PontoCerto. Todos os direitos reservados.</div>
   </div>
 </div>
 
@@ -346,6 +408,16 @@ document.getElementById('btn-toggle-senha').addEventListener('click', ()=>{
   inp.type = mostrando ? 'password' : 'text';
   btn.textContent = mostrando ? '👁' : '🙈';
   btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+});
+document.getElementById('btn-toggle-tema').addEventListener('click', ()=>{
+  const tela = document.getElementById('login-screen');
+  const btn = document.getElementById('btn-toggle-tema');
+  const claro = tela.classList.toggle('tema-claro');
+  btn.textContent = claro ? '🌙 Tema escuro' : '🌞 Tema claro';
+});
+document.getElementById('link-esqueci').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('login-msg').innerHTML = `<div class="login-ok">Fale com o RH para redefinir sua senha em Administração de Usuários.</div>`;
 });
 
 async function doLogin(){
