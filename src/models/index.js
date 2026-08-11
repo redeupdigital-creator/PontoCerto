@@ -9,6 +9,14 @@ const Feriado = require('./Feriado');
 const Usuario = require('./Usuario');
 const Notificacao = require('./Notificacao');
 const EmpresaConfig = require('./EmpresaConfig');
+const JornadaVersao = require('./JornadaVersao');
+const Auditoria = require('./Auditoria');
+const RegistroPontoAfd = require('./RegistroPontoAfd');
+
+Colaborador.hasMany(JornadaVersao, { foreignKey: 'colaboradorId' });
+JornadaVersao.belongsTo(Colaborador, { foreignKey: 'colaboradorId' });
+Colaborador.hasMany(RegistroPontoAfd, { foreignKey: 'colaboradorId' });
+RegistroPontoAfd.belongsTo(Colaborador, { foreignKey: 'colaboradorId' });
 
 Colaborador.hasMany(Batida, { foreignKey: 'colaboradorId' });
 Colaborador.hasMany(Abono, { foreignKey: 'colaboradorId' });
@@ -42,4 +50,7 @@ module.exports = {
   Usuario,
   Notificacao,
   EmpresaConfig,
+  JornadaVersao,
+  Auditoria,
+  RegistroPontoAfd,
 };

@@ -1,12 +1,14 @@
 const express = require('express');
 const { Batida } = require('../models');
-const { autenticar, apenasProprioOuEquipe, permitir } = require('../middleware/auth');
+const { autenticar, apenasProprioColaborador, permitir } = require('../middleware/auth');
+const { registrar } = require('../services/auditoria');
+const { registrarMarcacaoBruta } = require('../services/afd');
 
 const router = express.Router();
 router.use(autenticar);
 
 // GET /api/batidas?colaboradorId=&mes=2026-08
-router.get('/', apenasProprioOuEquipe(req => req.query.colaboradorId), async (req, res) => {
+router.get('/', apenasProprioColaborador(req => req.query.colaboradorId), async (req, res) => {
   const { colaboradorId, mes } = req.query;
   if (!colaboradorId || !mes) return res.status(400).json({ erro: 'Informe colaboradorId e mes (YYYY-MM)' });
   const { Op } = require('sequelize');
@@ -17,10 +19,10 @@ router.get('/', apenasProprioOuEquipe(req => req.query.colaboradorId), async (re
 });
 
 // PUT /api/batidas  -> cria ou atualiza a batida de um dia (upsert por colaboradorId+data)
-// Lançamento direto de horário é tarefa de RH/gestor (restrito à própria equipe,
-// no caso do gestor); o colaborador reporta inconsistências pelo fluxo de
-// Abono de Batidas (POST /api/abonos), ou bate o próprio ponto pelo app (ver abaixo).
-router.put('/', permitir('rh', 'admin', 'gestor'), apenasProprioOuEquipe(req => req.body.colaboradorId), async (req, res) => {
+// Lançamento direto de horário: analista/coordenador/admin. O colaborador
+// bate o próprio ponto pelo app (POST /bater) ou reporta inconsistência via
+// abono (POST /api/abonos). Consulta é só leitura, não lança nada.
+router.put('/', permitir('analista', 'coordenador', 'admin'), async (req, res) => {
   const { colaboradorId, data, e1, s1, e2, s2, origem } = req.body;
   if (!colaboradorId || !data) return res.status(400).json({ erro: 'Informe colaboradorId e data' });
 
@@ -28,7 +30,12 @@ router.put('/', permitir('rh', 'admin', 'gestor'), apenasProprioOuEquipe(req => 
     where: { colaboradorId, data },
     defaults: { colaboradorId, data, e1, s1, e2, s2, origem: origem || 'manual' },
   });
+  const antes = { e1: batida.e1, s1: batida.s1, e2: batida.e2, s2: batida.s2 };
   await batida.update({ e1, s1, e2, s2, origem: origem || batida.origem });
+  await registrar({
+    usuario: req.usuario, acao: 'update', entidade: 'Batida', entidadeId: batida.id,
+    detalhes: { colaboradorId, data, antes, depois: { e1, s1, e2, s2 } },
+  });
   res.json(batida);
 });
 
@@ -46,17 +53,17 @@ function dataAtual() {
 const ORDEM_SLOTS = ['e1', 's1', 'e2', 's2'];
 const ROTULO_SLOT = { e1: 'Entrada', s1: 'Saída (intervalo)', e2: 'Volta (intervalo)', s2: 'Saída' };
 
-// POST /api/batidas/bater  -> auto-atendimento: o próprio colaborador registra
-// a batida de AGORA (usado pelo app mobile). Preenche automaticamente o
-// próximo horário vazio do dia (entrada -> saída intervalo -> volta -> saída),
-// com geolocalização opcional capturada pelo navegador/app no momento do toque.
+// POST /api/batidas/bater  -> auto-atendimento: o próprio usuário logado
+// (qualquer perfil, desde que vinculado a um colaborador) registra a batida
+// de AGORA. Preenche automaticamente o próximo horário vazio do dia, com
+// geolocalização opcional capturada pelo navegador/app no momento do toque.
 router.post('/bater', async (req, res) => {
   const colaboradorId = req.usuario.colaboradorId;
   if (!colaboradorId) {
     return res.status(400).json({ erro: 'Este usuário não está vinculado a um colaborador — não é possível bater ponto.' });
   }
 
-  const { latitude, longitude, precisao } = req.body || {};
+  const { latitude, longitude, precisao, coletor } = req.body || {};
   const data = dataAtual();
 
   const [batida] = await Batida.findOrCreate({
@@ -70,6 +77,7 @@ router.post('/bater', async (req, res) => {
   }
 
   const hora = horaAtual();
+  const agora = new Date();
   const atualizacao = { [proximoSlot]: hora, origem: 'app' };
   if (typeof latitude === 'number' && typeof longitude === 'number') {
     atualizacao[`${proximoSlot}Lat`] = latitude;
@@ -78,12 +86,24 @@ router.post('/bater', async (req, res) => {
   }
   await batida.update(atualizacao);
 
+  // Registro imutável, numerado (NSR) e encadeado por hash — é a marcação de
+  // ponto de verdade, para fins do AFD (Portaria 671/2021). Não bloqueia a
+  // resposta ao usuário se falhar (o registro de exibição já foi salvo).
+  let registroAfd = null;
+  try {
+    registroAfd = await registrarMarcacaoBruta({ colaboradorId, dataHoraMarcacao: agora, origem: coletor === 'browser' ? 'browser' : 'app' });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[afd] falha ao registrar marcação bruta (não bloqueia a batida):', err.message);
+  }
+
   res.json({
     slot: proximoSlot,
     rotulo: ROTULO_SLOT[proximoSlot],
     hora,
     data,
     comGeolocalizacao: typeof latitude === 'number' && typeof longitude === 'number',
+    nsr: registroAfd ? registroAfd.nsr : null,
     batida,
   });
 });

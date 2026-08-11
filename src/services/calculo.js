@@ -1,7 +1,12 @@
 const { Op } = require('sequelize');
-const { Batida, Abono, Ferias, Atestado, Ocorrencia, Feriado } = require('../models');
+const { Batida, Abono, Ferias, Atestado, Ocorrencia, Feriado, JornadaVersao } = require('../models');
 
 const DIA_KEYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+const INICIO_NOTURNO_MIN = 22 * 60; // 22:00
+const FIM_DIA_MIN = 24 * 60; // meia-noite
+const ADICIONAL_NOTURNO_PERCENTUAL = 0.2; // +20% conforme CLT art. 73
+const INTERVALO_MINIMO_MIN = 60; // 1h, obrigatório para jornada > 6h (CLT art. 71)
+const JORNADA_MINIMA_PARA_INTERVALO = 6 * 60;
 
 function timeToMin(t) {
   if (!t) return null;
@@ -25,14 +30,45 @@ function dateStr(y, m, d) {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
-function jornadaPrevistaMin(colaborador, dow) {
-  const jornada = colaborador.jornada || {};
-  return (jornada[DIA_KEYS[dow]] || 0) * 60;
+function jornadaPrevistaMin(jornada, dow) {
+  return ((jornada || {})[DIA_KEYS[dow]] || 0) * 60;
 }
 
 /**
- * Calcula o dia de ponto de um colaborador (trabalhado, atraso, extra, falta)
- * considerando batidas, feriados, abonos aprovados e ausências (férias/atestado/suspensão).
+ * Retorna a jornada (objeto {dom,seg,...}) vigente numa data específica,
+ * olhando o histórico de versões do colaborador. Isso garante que meses
+ * passados continuem calculados com a jornada que valia naquela época,
+ * mesmo que a jornada atual do colaborador já tenha mudado depois.
+ * Se não houver nenhuma versão cobrindo a data (dado legado antes do
+ * versionamento existir), cai para `jornadaAtualFallback`.
+ */
+function buscarJornadaVigente(versoes, dstr, jornadaAtualFallback) {
+  const candidatas = versoes.filter((v) => v.vigenciaInicio <= dstr && (!v.vigenciaFim || v.vigenciaFim >= dstr));
+  if (candidatas.length === 0) return jornadaAtualFallback || {};
+  // Se por algum motivo houver mais de uma cobrindo a data (não deveria),
+  // usa a de início mais recente.
+  candidatas.sort((a, b) => (a.vigenciaInicio < b.vigenciaInicio ? 1 : -1));
+  return candidatas[0].jornada;
+}
+
+/**
+ * Minutos de um período [e,s) (em minutos desde 00:00, mesmo dia) que caem
+ * dentro da janela de adicional noturno (22:00–24:00). Limitação conhecida:
+ * não cobre o trecho de 00:00–05:00 quando o turno atravessa a meia-noite,
+ * porque o modelo atual de batida (e1/s1/e2/s2) representa só um dia por
+ * registro — ver README para o plano de evolução disso.
+ */
+function minutosNoturnos(e, s) {
+  if (e === null || s === null || s <= e) return 0;
+  const inicio = Math.max(e, INICIO_NOTURNO_MIN);
+  const fim = Math.min(s, FIM_DIA_MIN);
+  return Math.max(0, fim - inicio);
+}
+
+/**
+ * Calcula o dia de ponto de um colaborador (trabalhado, atraso, extra, falta,
+ * adicional noturno, intervalo) considerando batidas, feriados, abonos
+ * aprovados, ausências (férias/atestado/suspensão) e a jornada vigente na data.
  */
 async function calcularDia(colaborador, y, m, d, context) {
   const dstr = dateStr(y, m, d);
@@ -49,20 +85,44 @@ async function calcularDia(colaborador, y, m, d, context) {
   if (e2 !== null && s2 !== null) trabalhado += Math.max(0, s2 - e2);
 
   const feriado = context.feriados.has(dstr);
-  const prevista = feriado ? 0 : jornadaPrevistaMin(colaborador, dow);
+  const jornadaVigente = buscarJornadaVigente(context.jornadaVersoes, dstr, colaborador.jornada);
+  const prevista = feriado ? 0 : jornadaPrevistaMin(jornadaVigente, dow);
 
   const abonado = context.abonosAprovados.has(dstr);
-
   const ausencia = buscarAusencia(context, dstr);
+
+  // Dias futuros (além de hoje) ainda não aconteceram — não têm falta nem
+  // atraso a apurar. Sem essa checagem, todo dia restante do mês corrente
+  // era contado como falta, o que inflava o relatório de forma incorreta.
+  const ehFuturo = context.hoje ? dstr > context.hoje : false;
 
   let atraso = 0;
   let extra = 0;
-  if (!ausencia) {
+  if (!ausencia && !ehFuturo) {
     if (trabalhado < prevista && !abonado) atraso = prevista - trabalhado;
     if (trabalhado > prevista) extra = trabalhado - prevista;
   }
 
-  const falta = prevista > 0 && trabalhado === 0 && !abonado && !ausencia;
+  const falta = !ehFuturo && prevista > 0 && trabalhado === 0 && !abonado && !ausencia;
+
+  // "Atraso" para fins de contagem de dias (relatórios/painel) respeita a
+  // tolerância do colaborador — poucos minutos de diferença não devem contar
+  // como um dia de atraso.
+  const tolerancia = Number(colaborador.toleranciaMin) || 0;
+  const diaComAtraso = atraso > tolerancia;
+
+  // Adicional noturno (CLT art. 73): soma o tempo trabalhado entre 22h e
+  // meia-noite nos dois períodos do dia, e converte em minutos "equivalentes"
+  // ao acréscimo de 20% — é um indicador para a folha, não substitui o
+  // cálculo definitivo do sistema de folha de pagamento.
+  const minNoturnos = minutosNoturnos(e1, s1) + minutosNoturnos(e2, s2);
+  const adicionalNoturnoMin = Math.round(minNoturnos * ADICIONAL_NOTURNO_PERCENTUAL);
+
+  // Intervalo intrajornada (CLT art. 71): mínimo 1h quando a jornada prevista
+  // do dia é maior que 6h.
+  const intervaloMin = (s1 !== null && e2 !== null) ? Math.max(0, e2 - s1) : null;
+  const exigeIntervalo = !feriado && !ausencia && !ehFuturo && prevista > JORNADA_MINIMA_PARA_INTERVALO;
+  const intervaloInsuficiente = exigeIntervalo && (intervaloMin === null || intervaloMin < INTERVALO_MINIMO_MIN) && trabalhado > 0;
 
   return {
     data: dstr,
@@ -76,9 +136,17 @@ async function calcularDia(colaborador, y, m, d, context) {
     abonado,
     ausencia,
     falta,
+    diaComAtraso,
+    ehFuturo,
     horasTrabalhadas: minToTime(trabalhado),
     horasAtraso: minToTime(atraso),
     horasExtra: minToTime(extra),
+    minutosNoturnos: minNoturnos,
+    adicionalNoturnoMin,
+    horasNoturnas: minToTime(minNoturnos),
+    adicionalNoturno: minToTime(adicionalNoturnoMin),
+    intervaloMin,
+    intervaloInsuficiente,
   };
 }
 
@@ -102,14 +170,17 @@ async function calcularMes(colaborador, ano, mes) {
   const nd = daysInMonth(ano, mes);
   const inicio = dateStr(ano, mes, 1);
   const fim = dateStr(ano, mes, nd);
+  const agora = new Date();
+  const hoje = dateStr(agora.getFullYear(), agora.getMonth() + 1, agora.getDate());
 
-  const [batidas, abonos, feriados, ferias, atestados, ocorrencias] = await Promise.all([
+  const [batidas, abonos, feriados, ferias, atestados, ocorrencias, jornadaVersoes] = await Promise.all([
     Batida.findAll({ where: { colaboradorId: colaborador.id, data: { [Op.between]: [inicio, fim] } } }),
     Abono.findAll({ where: { colaboradorId: colaborador.id, status: 'aprovado', data: { [Op.between]: [inicio, fim] } } }),
     Feriado.findAll({ where: { data: { [Op.between]: [inicio, fim] } } }),
     Ferias.findAll({ where: { colaboradorId: colaborador.id } }),
     Atestado.findAll({ where: { colaboradorId: colaborador.id } }),
     Ocorrencia.findAll({ where: { colaboradorId: colaborador.id } }),
+    JornadaVersao.findAll({ where: { colaboradorId: colaborador.id } }),
   ]);
 
   const context = {
@@ -119,6 +190,8 @@ async function calcularMes(colaborador, ano, mes) {
     ferias: ferias.map((f) => f.get({ plain: true })),
     atestados: atestados.map((a) => a.get({ plain: true })),
     ocorrencias: ocorrencias.map((o) => o.get({ plain: true })),
+    jornadaVersoes,
+    hoje,
   };
 
   const dias = [];
@@ -126,6 +199,10 @@ async function calcularMes(colaborador, ano, mes) {
   let totalAtraso = 0;
   let totalExtra = 0;
   let totalFaltas = 0;
+  let totalNoturno = 0;
+  let totalAdicionalNoturno = 0;
+  let diasIntervaloInsuficiente = 0;
+  let diasComAtraso = 0;
 
   for (let d = 1; d <= nd; d += 1) {
     // eslint-disable-next-line no-await-in-loop
@@ -134,7 +211,11 @@ async function calcularMes(colaborador, ano, mes) {
     totalTrabalhado += dia.minutosTrabalhados;
     totalAtraso += dia.minutosAtraso;
     totalExtra += dia.minutosExtra;
+    totalNoturno += dia.minutosNoturnos;
+    totalAdicionalNoturno += dia.adicionalNoturnoMin;
     if (dia.falta) totalFaltas += 1;
+    if (dia.intervaloInsuficiente) diasIntervaloInsuficiente += 1;
+    if (dia.diaComAtraso) diasComAtraso += 1;
   }
 
   return {
@@ -144,8 +225,15 @@ async function calcularMes(colaborador, ano, mes) {
       atraso: minToTime(totalAtraso),
       extra: minToTime(totalExtra),
       faltas: totalFaltas,
+      diasComAtraso,
+      noturno: minToTime(totalNoturno),
+      adicionalNoturno: minToTime(totalAdicionalNoturno),
+      diasIntervaloInsuficiente,
     },
   };
 }
 
-module.exports = { calcularMes, calcularDia, minToTime, timeToMin, daysInMonth, dateStr };
+module.exports = {
+  calcularMes, calcularDia, minToTime, timeToMin, daysInMonth, dateStr,
+  buscarJornadaVigente, minutosNoturnos, jornadaPrevistaMin,
+};

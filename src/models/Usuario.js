@@ -7,7 +7,7 @@ const Usuario = sequelize.define('Usuario', {
   login: { type: DataTypes.STRING, allowNull: false, unique: true },
   senhaHash: { type: DataTypes.STRING, allowNull: false },
   perfil: {
-    type: DataTypes.ENUM('colaborador', 'gestor', 'rh', 'admin'),
+    type: DataTypes.STRING,
     defaultValue: 'colaborador',
   },
 }, {

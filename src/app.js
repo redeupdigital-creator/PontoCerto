@@ -15,6 +15,9 @@ const cartaoPontoRoutes = require('./routes/cartaoPonto');
 const notificacoesRoutes = require('./routes/notificacoes');
 const usuariosRoutes = require('./routes/usuarios');
 const empresaRoutes = require('./routes/empresa');
+const auditoriaRoutes = require('./routes/auditoria');
+const afdRoutes = require('./routes/afd');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 app.use(cors());
@@ -46,6 +49,9 @@ app.use('/api/cartao-ponto', cartaoPontoRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/empresa', empresaRoutes);
+app.use('/api/auditoria', auditoriaRoutes);
+app.use('/api/afd', afdRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Tratamento de erro genérico
 app.use((err, req, res, next) => {

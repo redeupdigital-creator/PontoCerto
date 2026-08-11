@@ -2,31 +2,15 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { Colaborador, Ferias, Atestado, Ocorrencia } = require('../models');
 const { calcularMes } = require('../services/calculo');
-const { autenticar, permitir, idsDaEquipe } = require('../middleware/auth');
+const { autenticar, permitir } = require('../middleware/auth');
 const { gerarXlsx, gerarPdf } = require('../services/exportacao');
 
 const router = express.Router();
 router.use(autenticar);
-// Relatórios são ferramenta de gestão: colaborador comum não tem acesso direto
-// (ele já vê seus próprios dados pelo cartão de ponto e pelas listagens de ausências/abonos).
-router.use(permitir('gestor', 'rh', 'admin'));
-
-// Resolve o filtro de colaboradorId(s) aplicável: gestor só pode ver a própria
-// equipe (mesmo se não informar colaboradorId, o relatório já vem restrito a ela);
-// RH/admin veem tudo, com filtro opcional.
-async function resolverFiltroColaborador(req) {
-  if (req.usuario.perfil === 'gestor') {
-    const equipe = await idsDaEquipe(req.usuario.colaboradorId);
-    const permitidos = [req.usuario.colaboradorId, ...equipe];
-    if (req.query.colaboradorId) {
-      if (!permitidos.includes(req.query.colaboradorId)) return { negado: true };
-      return { ids: [req.query.colaboradorId] };
-    }
-    return { ids: permitidos };
-  }
-  if (req.query.colaboradorId) return { ids: [req.query.colaboradorId] };
-  return { ids: null }; // sem filtro = todos (rh/admin)
-}
+// Relatórios são ferramenta de gestão/consulta: colaborador e analista não
+// têm acesso direto (o colaborador já vê os próprios dados pelo cartão de
+// ponto; analista fica restrito a ponto e abono).
+router.use(permitir('coordenador', 'consulta', 'admin'));
 
 // ---- Funções que montam as LINHAS de cada relatório (reaproveitadas por
 // JSON e pelas exportações em Excel/PDF, para garantir que o dado exportado
@@ -37,9 +21,7 @@ async function linhasFaltaAtraso(req) {
   if (!mes) return { erro: 'Informe mes (YYYY-MM)' };
   const [ano, mesNum] = mes.split('-').map(Number);
 
-  const filtro = await resolverFiltroColaborador(req);
-  if (filtro.negado) return { negado: true };
-  const where = filtro.ids ? { id: { [Op.in]: filtro.ids } } : {};
+  const where = req.query.colaboradorId ? { id: req.query.colaboradorId } : {};
   const colaboradores = await Colaborador.findAll({ where });
 
   const linhas = [];
@@ -64,10 +46,8 @@ async function linhasFaltaAtraso(req) {
 }
 
 async function linhasFerias(req) {
-  const filtro = await resolverFiltroColaborador(req);
-  if (filtro.negado) return { negado: true };
   const where = {};
-  if (filtro.ids) where.colaboradorId = { [Op.in]: filtro.ids };
+  if (req.query.colaboradorId) where.colaboradorId = req.query.colaboradorId;
   if (req.query.status) where.status = req.query.status;
   const registros = await Ferias.findAll({
     where,
@@ -89,10 +69,8 @@ async function linhasFerias(req) {
 }
 
 async function linhasOcorrencias(req) {
-  const filtro = await resolverFiltroColaborador(req);
-  if (filtro.negado) return { negado: true };
   const where = {};
-  if (filtro.ids) where.colaboradorId = { [Op.in]: filtro.ids };
+  if (req.query.colaboradorId) where.colaboradorId = req.query.colaboradorId;
   if (req.query.tipo) where.tipo = req.query.tipo;
   const registros = await Ocorrencia.findAll({
     where,
@@ -113,10 +91,8 @@ async function linhasOcorrencias(req) {
 }
 
 async function linhasAtestados(req) {
-  const filtro = await resolverFiltroColaborador(req);
-  if (filtro.negado) return { negado: true };
   const where = {};
-  if (filtro.ids) where.colaboradorId = { [Op.in]: filtro.ids };
+  if (req.query.colaboradorId) where.colaboradorId = req.query.colaboradorId;
   const registros = await Atestado.findAll({
     where,
     include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
@@ -194,25 +170,21 @@ const RELATORIOS = {
 router.get('/falta-atraso', async (req, res) => {
   const r = await linhasFaltaAtraso(req);
   if (r.erro) return res.status(400).json({ erro: r.erro });
-  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
   res.json({ mes: r.mes, total: r.linhas.length, linhas: r.linhas });
 });
 
 router.get('/ferias', async (req, res) => {
   const r = await linhasFerias(req);
-  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
   res.json(r.linhas);
 });
 
 router.get('/ocorrencias', async (req, res) => {
   const r = await linhasOcorrencias(req);
-  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
   res.json(r.linhas);
 });
 
 router.get('/atestados', async (req, res) => {
   const r = await linhasAtestados(req);
-  if (r.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
   res.json(r.linhas);
 });
 
@@ -228,7 +200,6 @@ router.get('/:tipo/exportar', async (req, res) => {
 
   const resultado = await config.obterLinhas(req);
   if (resultado.erro) return res.status(400).json({ erro: resultado.erro });
-  if (resultado.negado) return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
 
   const subtitulo = resultado.mes ? `Referência: ${resultado.mes}` : `Gerado em ${new Date().toLocaleDateString('pt-BR')}`;
   const nomeArquivo = `${req.params.tipo}-${resultado.mes || new Date().toISOString().slice(0, 10)}`;

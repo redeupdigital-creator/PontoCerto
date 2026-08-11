@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API do sistema de controle de ponto - ERP",
   "main": "src/server.js",
+  "author": "Danilo Cruz",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",

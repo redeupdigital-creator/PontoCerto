@@ -10,12 +10,12 @@ router.get('/', async (req, res) => {
   res.json(feriados);
 });
 
-router.post('/', permitir('rh', 'admin'), async (req, res) => {
+router.post('/', permitir('admin'), async (req, res) => {
   const feriado = await Feriado.create(req.body);
   res.status(201).json(feriado);
 });
 
-router.delete('/:id', permitir('rh', 'admin'), async (req, res) => {
+router.delete('/:id', permitir('admin'), async (req, res) => {
   const feriado = await Feriado.findByPk(req.params.id);
   if (!feriado) return res.status(404).json({ erro: 'Feriado não encontrado' });
   await feriado.destroy();

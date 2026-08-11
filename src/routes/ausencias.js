@@ -1,65 +1,49 @@
 const express = require('express');
-const { Op } = require('sequelize');
 const { Ferias, Atestado, Ocorrencia } = require('../models');
-const { autenticar, permitir, apenasProprioOuEquipe, idsDaEquipe } = require('../middleware/auth');
+const { autenticar, permitir } = require('../middleware/auth');
+const { registrar } = require('../services/auditoria');
 
 const router = express.Router();
 router.use(autenticar);
 
-function crudSimples(model, camposObrigatorios) {
+function crudSimples(model, camposObrigatorios, nomeEntidade) {
   const r = express.Router();
 
-  // Colaborador: só os próprios. Gestor: os próprios + os da equipe (ou só um
-  // colaborador específico da equipe, se colaboradorId for informado). RH/admin: todos.
-  r.get('/', async (req, res) => {
+  // Colaborador: só os próprios. Coordenador/consulta/admin: todos (com
+  // filtro opcional). Analista não acessa ausências (fora do seu escopo).
+  r.get('/', permitir('colaborador', 'coordenador', 'consulta', 'admin'), async (req, res) => {
     const { perfil, colaboradorId: proprioId } = req.usuario;
     const where = {};
-
     if (perfil === 'colaborador') {
       where.colaboradorId = proprioId;
-    } else if (perfil === 'gestor') {
-      if (req.query.colaboradorId) {
-        const equipe = await idsDaEquipe(proprioId);
-        if (req.query.colaboradorId !== proprioId && !equipe.includes(req.query.colaboradorId)) {
-          return res.status(403).json({ erro: 'Você só pode acessar dados da sua equipe' });
-        }
-        where.colaboradorId = req.query.colaboradorId;
-      } else {
-        const equipe = await idsDaEquipe(proprioId);
-        where.colaboradorId = { [Op.in]: [proprioId, ...equipe] };
-      }
     } else if (req.query.colaboradorId) {
-      where.colaboradorId = req.query.colaboradorId; // rh/admin com filtro opcional
+      where.colaboradorId = req.query.colaboradorId;
     }
-
     const registros = await model.findAll({ where, order: [['createdAt', 'DESC']] });
     res.json(registros);
   });
 
-  r.post('/', permitir('rh', 'admin', 'gestor'), apenasProprioOuEquipe(req => req.body.colaboradorId), async (req, res) => {
+  r.post('/', permitir('coordenador', 'admin'), async (req, res) => {
     for (const campo of camposObrigatorios) {
       if (!req.body[campo]) return res.status(400).json({ erro: `Campo obrigatório: ${campo}` });
     }
     const registro = await model.create(req.body);
+    await registrar({ usuario: req.usuario, acao: 'create', entidade: nomeEntidade, entidadeId: registro.id, detalhes: req.body });
     res.status(201).json(registro);
   });
 
-  r.put('/:id', permitir('rh', 'admin', 'gestor'), async (req, res) => {
+  r.put('/:id', permitir('coordenador', 'admin'), async (req, res) => {
     const registro = await model.findByPk(req.params.id);
     if (!registro) return res.status(404).json({ erro: 'Registro não encontrado' });
-    if (req.usuario.perfil === 'gestor') {
-      const equipe = await idsDaEquipe(req.usuario.colaboradorId);
-      if (!equipe.includes(registro.colaboradorId) && registro.colaboradorId !== req.usuario.colaboradorId) {
-        return res.status(403).json({ erro: 'Você só pode alterar dados da sua equipe' });
-      }
-    }
     await registro.update(req.body);
+    await registrar({ usuario: req.usuario, acao: 'update', entidade: nomeEntidade, entidadeId: registro.id, detalhes: req.body });
     res.json(registro);
   });
 
-  r.delete('/:id', permitir('rh', 'admin'), async (req, res) => {
+  r.delete('/:id', permitir('admin'), async (req, res) => {
     const registro = await model.findByPk(req.params.id);
     if (!registro) return res.status(404).json({ erro: 'Registro não encontrado' });
+    await registrar({ usuario: req.usuario, acao: 'delete', entidade: nomeEntidade, entidadeId: registro.id, detalhes: { colaboradorId: registro.colaboradorId } });
     await registro.destroy();
     res.status(204).send();
   });
@@ -67,8 +51,8 @@ function crudSimples(model, camposObrigatorios) {
   return r;
 }
 
-router.use('/ferias', crudSimples(Ferias, ['colaboradorId', 'dataInicioGozo', 'dataFimGozo']));
-router.use('/atestados', crudSimples(Atestado, ['colaboradorId', 'dataInicio', 'dataFim']));
-router.use('/ocorrencias', crudSimples(Ocorrencia, ['colaboradorId', 'tipo', 'dataInicio']));
+router.use('/ferias', crudSimples(Ferias, ['colaboradorId', 'dataInicioGozo', 'dataFimGozo'], 'Ferias'));
+router.use('/atestados', crudSimples(Atestado, ['colaboradorId', 'dataInicio', 'dataFim'], 'Atestado'));
+router.use('/ocorrencias', crudSimples(Ocorrencia, ['colaboradorId', 'tipo', 'dataInicio'], 'Ocorrencia'));
 
 module.exports = router;

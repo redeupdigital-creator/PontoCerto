@@ -1,6 +1,7 @@
 const express = require('express');
 const { EmpresaConfig } = require('../models');
 const { autenticar, permitir } = require('../middleware/auth');
+const { registrar } = require('../services/auditoria');
 
 const router = express.Router();
 router.use(autenticar);
@@ -17,11 +18,12 @@ router.get('/', async (req, res) => {
   res.json(config);
 });
 
-// Só RH/admin podem editar os dados da empresa.
-router.put('/', permitir('rh', 'admin'), async (req, res) => {
+// Só admin edita os dados da empresa (config fica fora do alcance do coordenador).
+router.put('/', permitir('admin'), async (req, res) => {
   const config = await obterOuCriarConfig();
-  const { razaoSocial, cnpj, atividadeEconomica } = req.body;
-  await config.update({ razaoSocial, cnpj, atividadeEconomica });
+  const { razaoSocial, cnpj, atividadeEconomica, cpfResponsavelRegistros, numeroRegistroInpiRepP, localPrestacaoServico } = req.body;
+  await config.update({ razaoSocial, cnpj, atividadeEconomica, cpfResponsavelRegistros, numeroRegistroInpiRepP, localPrestacaoServico });
+  await registrar({ usuario: req.usuario, acao: 'update', entidade: 'Empresa', entidadeId: config.id, detalhes: { razaoSocial, cnpj } });
   res.json(config);
 });
 

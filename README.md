@@ -36,7 +36,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 Use o `token` retornado no header `Authorization: Bearer <token>` em todas as
 próximas chamadas.
 
-Perfis de acesso: `colaborador`, `gestor`, `rh`, `admin` (ver `src/middleware/auth.js`
+Perfis de acesso: `colaborador`, `analista`, `coordenador`, `consulta`, `admin` (ver seção 4
 para o que cada rota exige).
 
 ## 3. Principais endpoints
@@ -45,10 +45,10 @@ para o que cada rota exige).
 |---|---|---|
 | POST | `/api/auth/login` | Login, retorna token JWT |
 | GET/POST/PUT/DELETE | `/api/colaboradores` | CRUD de colaboradores (POST/PUT aceitam `multipart/form-data` com campo `foto`) |
-| GET/PUT | `/api/batidas?colaboradorId=&mes=YYYY-MM` | Consultar batidas do mês / lançar (RH, gestor, admin) |
+| GET/PUT | `/api/batidas?colaboradorId=&mes=YYYY-MM` | Consultar batidas do mês / lançar (analista, coordenador, admin) |
 | POST | `/api/batidas/bater` | Self-service: registra a batida de AGORA no próximo slot vazio do dia, com geolocalização opcional (usado pelo app mobile) |
 | GET/POST | `/api/abonos` | Listar / solicitar abono de batida (colaborador só vê/solicita os próprios) |
-| PATCH | `/api/abonos/:id/aprovar` | Aprovar abono (gestor/RH/admin) — notifica o colaborador |
+| PATCH | `/api/abonos/:id/aprovar` | Aprovar abono (analista/coordenador/admin) — notifica o colaborador |
 | PATCH | `/api/abonos/:id/reprovar` | Reprovar abono — notifica o colaborador |
 | GET/POST/PUT/DELETE | `/api/ausencias/ferias` | CRUD de férias (colaborador só vê as próprias) |
 | GET/POST/PUT/DELETE | `/api/ausencias/atestados` | CRUD de atestados |
@@ -61,51 +61,59 @@ para o que cada rota exige).
 | GET | `/api/relatorios/:tipo/exportar?formato=xlsx\|pdf` | Exporta um relatório (`falta-atraso`, `ferias`, `ocorrencias`, `atestados`) em Excel ou PDF |
 | GET/PUT | `/api/empresa` | Dados da empresa (razão social, CNPJ, atividade econômica) usados na etiqueta do cartão de ponto — leitura livre, edição só RH/admin |
 | GET | `/api/cartao-ponto/:colaboradorId?mes=YYYY-MM` | Dados completos do cartão de ponto (colaborador só acessa o próprio) |
-| GET | `/api/notificacoes` | Centro de notificações (colaborador vê as suas; RH/gestor/admin veem também as amplas) |
+| GET | `/api/dashboard/hoje` | Painel ao vivo: status agora + faltas/atrasos do mês por colaborador (coordenador/consulta/admin) |
+| GET | `/api/notificacoes` | Centro de notificações (colaborador vê as suas; demais perfis veem também as amplas) |
 | PATCH | `/api/notificacoes/:id/lida` | Marcar notificação como lida |
 | GET/POST/PUT/DELETE | `/api/usuarios` | Administração de logins (RH/admin; DELETE só admin) |
 | PATCH | `/api/usuarios/me/senha` | Qualquer usuário troca a própria senha (exige senha atual) |
 | PATCH | `/api/usuarios/:id/senha` | RH/admin reseta a senha de qualquer usuário |
 
-## 4. Acesso self-service e escopo de equipe
+## 4. Perfis de acesso
 
-- **Perfil `colaborador`**: só lê/solicita dados vinculados ao próprio
-  `colaboradorId` (cartão de ponto, batidas, abonos, férias, atestados,
-  ocorrências). Não acessa relatórios de gestão. Qualquer tentativa de acessar
-  dado de outro colaborador retorna `403`.
-- **Perfil `gestor`**: cada colaborador tem um `gestorId` (campo em
-  `Colaborador`, ver seed). O gestor só acessa/aprova/consulta dados de quem
-  ele lidera diretamente (`colaborador.gestorId === gestor.colaboradorId`) —
-  isso vale para cartão de ponto, batidas, abonos (inclusive aprovar/reprovar),
-  ausências e relatórios. Listagens sem filtro explícito já vêm
-  automaticamente restritas à equipe dele.
-- **Perfis `rh`/`admin`**: acesso irrestrito a todos os colaboradores.
+O sistema tem 5 perfis (`src/constants/perfis.js`), cada um com um escopo bem
+delimitado — validado em `src/middleware/auth.js` e em cada rota via
+`permitir(...)`:
 
-A listagem (`GET /colaboradores`) e a busca individual (`GET /colaboradores/:id`)
-seguem o mesmo escopo — um colaborador comum não consegue mais listar ou
-buscar diretamente o cadastro de outra pessoa, nem um gestor ver quem não é
-da sua equipe.
+| Perfil | O que pode fazer |
+|---|---|
+| `admin` | Acesso total: tudo dos perfis abaixo, mais gerenciar usuários (`/api/usuarios`) e configurações da empresa (`/api/empresa`, feriados). |
+| `coordenador` | Operacional completo em **toda a empresa** (não é mais escopado por equipe): cadastra/edita colaborador, lança ponto, aprova abono, gerencia férias/atestado/ocorrência, vê e exporta relatórios. **Não** acessa usuários nem configurações da empresa/feriados. |
+| `analista` | Lança e consulta **ponto e abono** de qualquer colaborador. **Não** cadastra colaborador, não acessa ausências nem relatórios. |
+| `consulta` | Somente leitura: colaboradores, relatórios (inclusive exportar), cartão de ponto, ausências. Não cria/edita/aprova nada. |
+| `colaborador` | Autoatendimento: só os próprios dados (cartão de ponto, batidas, abonos, ausências). Bate o próprio ponto pelo app. Qualquer tentativa de acessar dado de outro colaborador retorna `403`. |
 
-Toda essa lógica está centralizada em `src/middleware/auth.js`
-(`apenasProprioColaborador`, `apenasProprioOuEquipe`, `idsDaEquipe`) e foi
-testada durante o desenvolvimento com cenários de tentativa de acesso
-indevido entre colaboradores e entre equipes diferentes — não só o caminho
-feliz.
+Só `admin` pode excluir colaborador ou excluir registro de ausência — mesmo
+`coordenador`, que já pode criar/editar, não exclui (ação sensível reservada
+ao perfil de acesso total).
 
-Lançamento direto de horário (`PUT /api/batidas`) continua restrito a
-RH/gestor/admin — o colaborador reporta inconsistências pelo fluxo de
-**Abono de Batidas**, que é auto-atendido (`POST /api/abonos`).
+Essa matriz completa (quem pode fazer o quê, em cada módulo) foi validada com
+um script de teste dedicado durante o desenvolvimento, cobrindo tanto as
+ações permitidas quanto as proibidas para cada um dos 5 perfis — não só o
+caminho feliz.
+
+Lançamento direto de horário (`PUT /api/batidas`) fica restrito a
+analista/coordenador/admin — o colaborador bate o próprio ponto pelo app
+(`POST /api/batidas/bater`) ou reporta inconsistência via abono
+(`POST /api/abonos`).
+
+**Nota de migração:** os perfis antigos `gestor` e `rh` (de uma versão
+anterior, que era escopada por equipe via `colaborador.gestorId`) foram
+substituídos por este modelo. Uma migration (`20260811000015-refazer-perfis-usuarios.js`)
+converte automaticamente logins existentes com esses perfis para
+`coordenador` — revise manualmente se o mapeamento não fizer sentido pro seu
+caso. O campo `gestorId` continua no cadastro do colaborador, mas hoje é
+apenas informativo (não afeta mais o controle de acesso).
 
 ## 5. Administração de usuários
 
-Antes só era possível criar login pelo `src/seed.js` (editando o banco
-diretamente). Agora existe uma API completa em `/api/usuarios`:
+Toda a gestão de login é exclusiva do perfil `admin` — inclusive pela
+interface, na aba **Usuários** (só aparece pra quem é admin):
 
-- **RH/admin** criam, listam e editam usuários (`login`, `senha`, `perfil`,
-  vínculo com `colaboradorId`). A resposta nunca inclui o hash da senha.
-- Só um **admin** pode conceder o perfil `admin` a alguém — RH tentando criar
-  outro admin recebe `403` (testado). Remoção de usuário também é
-  admin-only, por ser uma ação sensível de revogar acesso.
+- Cria, lista e edita usuários (`login`, `senha`, `perfil`, vínculo com
+  `colaboradorId`). A resposta nunca inclui o hash da senha.
+- Só aceita os 5 perfis válidos (`src/constants/perfis.js`) — tentar criar
+  com um perfil fora da lista retorna `400`.
+- Remoção de usuário é ação sensível: revoga acesso de alguém imediatamente.
 - Qualquer usuário troca a **própria senha** via `PATCH /api/usuarios/me/senha`,
   confirmando a senha atual (testado: senha atual errada é rejeitada, e a
   senha antiga para de funcionar assim que a nova é definida).
@@ -115,7 +123,7 @@ diretamente). Agora existe uma API completa em `/api/usuarios`:
 ## 6. Notificações
 
 Toda solicitação de abono gera uma notificação **ampla** (visível para
-RH/gestor/admin) e toda aprovação/reprovação gera uma notificação **pessoal**
+analista/coordenador/admin) e toda aprovação/reprovação gera uma notificação **pessoal**
 para o colaborador — sempre registradas em `/api/notificacoes` (centro de
 notificações in-app), e também por e-mail se houver SMTP configurado no
 `.env` (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, etc. — ver `.env.example`).
@@ -136,8 +144,7 @@ GET /api/relatorios/atestados/exportar?formato=pdf
 
 A exportação reaproveita exatamente a mesma função que monta os dados da
 tela (`src/routes/relatorios.js`), então o arquivo baixado nunca diverge do
-que aparece na interface — e respeita o mesmo escopo de equipe do gestor
-(testado: um gestor exportando não vê colaboradores de fora do time dele no
+que aparece na interface.
 arquivo gerado). Implementado com `exceljs` (Excel) e `pdfkit` (PDF, com
 paginação automática para relatórios longos), em `src/services/exportacao.js`.
 
@@ -172,6 +179,46 @@ de hospedado, acesse `https://seu-dominio/app` pelo celular e use "Adicionar
 Testado de ponta a ponta (login, GPS mockado, sequência completa de 4
 batidas, persistência da geolocalização no banco, cartão e abono) com jsdom
 simulando o navegador contra a API real durante o desenvolvimento.
+
+### Módulo Admin (acesso completo a partir do celular)
+
+Para qualquer perfil que não seja `colaborador`, uma 5ª aba **Admin**
+aparece na barra inferior, abrindo um menu com as ferramentas de gestão —
+cada uma adaptada ao formato mobile (cards e listas, em vez das tabelas
+largas da tela desktop):
+
+| Ferramenta | Quem vê |
+|---|---|
+| Painel ao Vivo | coordenador, consulta, admin |
+| Colaboradores (ver/cadastrar) | analista, coordenador, consulta, admin |
+| Registro de Ponto (lançar 1 dia) | analista, coordenador, admin |
+| Ausências | coordenador, consulta, admin |
+| Relatórios (com exportação Excel/PDF) | coordenador, consulta, admin |
+| Feriados | coordenador, consulta, admin |
+| Usuários | só admin |
+| Auditoria | só admin |
+| Compliance (AFD + integridade) | só admin |
+
+O **admin** é o único perfil que vê as 9 ferramentas — cobrindo, a partir do
+celular, tudo que também está disponível no painel desktop, com exceção de
+Etiquetas (geração de etiqueta para colar no cartão físico ficou só no
+painel desktop, por ser uma tarefa de impressão que não faz sentido no
+celular).
+
+Testado de ponta a ponta: visibilidade da aba por perfil (os 5 logins de
+teste), as 9 ferramentas do admin carregando sem erro, cadastro de
+colaborador funcionando de verdade, e exportação de relatório disparando o
+download — tudo via simulação de navegador contra a API real, mais
+conferência visual com Chromium.
+
+**Bug real encontrado e corrigido durante esse teste**: a função `apiFetch`
+do app mobile forçava `Content-Type: application/json` em toda chamada com
+corpo, mesmo quando o corpo era um `FormData` (upload de foto/multipart) —
+isso corrompia a requisição de cadastro de colaborador. Existia desde a
+criação do app, só nunca tinha sido exercitado porque o mobile não tinha
+nenhum formulário com upload até essa mudança. Corrigido para tratar
+`FormData` como um caso especial, do mesmo jeito que o painel desktop já
+fazia.
 
 ## 9. Etiqueta para o cartão de ponto físico
 
@@ -288,9 +335,130 @@ foto do colaborador. Basta abrir o HTML no navegador com esta API rodando —
 por padrão ele aponta para `http://localhost:3000/api` (editável na própria tela
 de login, caso a API esteja em outro endereço).
 
-## 16. Próximos passos sugeridos
+## 16. Compliance trabalhista (AFD/Portaria 671), adicional noturno, intervalo mínimo, versionamento de jornada e auditoria
+
+Essas 4 frentes foram implementadas a partir de uma análise de gaps do
+sistema e testadas com evidência real (não só documentadas):
+
+### AFD e NSR (Portaria 671/2021)
+- `src/services/afd.js` gera o **AFD** (Arquivo Fonte de Dados) no leiaute
+  oficial do Anexo V da Portaria 671/2021 (modo **REP-P**, já que este é um
+  sistema de software). Implementação validada campo a campo por posição
+  contra a especificação, incluindo:
+  - **CRC-16/KERMIT** nos registros tipo 1, 2 e 5 — testado contra o vetor
+    de teste oficial da própria Portaria (`CRC16("123456789") = 0x2189`).
+  - **NSR** (Número Sequencial de Registro) e **cadeia de hash SHA-256**
+    nos registros tipo 7 (marcação de ponto) — testado inclusive quanto à
+    **detecção de adulteração**: alterei um registro direto no banco (fora
+    da aplicação) e confirmei que `GET /api/afd/integridade` acusa
+    corretamente onde a cadeia quebrou.
+  - Registros tipo 5 (inclusão/alteração de empregado) são gerados a partir
+    da trilha de auditoria — não existe um cadastro paralelo pra manter.
+- **O que este software NÃO faz sozinho** (e é importante saber): não gera a
+  assinatura digital CAdES/`.p7s` do AFD (exige certificado ICP-Brasil
+  e-CNPJ da empresa — infraestrutura, não código) nem tem número de registro
+  no INPI (exige homologação oficial do programa junto ao governo). O
+  arquivo gerado sinaliza isso explicitamente no campo `avisos` da resposta
+  da exportação, e a tela de Compliance mostra os mesmos avisos. **Recomenda-se
+  validação por contador/consultoria trabalhista antes de uso em fiscalização.**
+- Só a marcação feita pelo próprio colaborador (`POST /api/batidas/bater`)
+  gera registro fiscal (tipo 7) — lançamento manual por RH/analista/
+  coordenador (`PUT /api/batidas`) não fabrica uma marcação que não
+  aconteceu; fica só na auditoria genérica, que é o mecanismo correto pra
+  correções administrativas.
+- Endpoints: `GET /api/afd/exportar?dataInicio=&dataFim=&formato=txt|json`,
+  `GET /api/afd/integridade` — ambos exclusivos de admin. Tela: aba
+  **Compliance**.
+
+### Adicional noturno e intervalo mínimo
+- `src/services/calculo.js` agora calcula, por dia: minutos trabalhados
+  entre 22h–24h e o acréscimo de 20% (CLT art. 73), e se o intervalo entre
+  a saída e a volta do almoço ficou abaixo de 1h em jornadas acima de 6h
+  (CLT art. 71) — sinalizado como `intervaloInsuficiente`.
+- **Limitação conhecida e documentada no código**: o cálculo de adicional
+  noturno cobre só o trecho 22h–24h do mesmo dia civil da batida; turnos que
+  atravessam a meia-noite (ex.: 22h–06h) não têm o trecho 00h–05h coberto,
+  porque o modelo atual de batida (`e1/s1/e2/s2` por dia) representa um dia
+  por registro. Evoluir isso é o item de maior prioridade se a empresa tiver
+  turnos noturnos que cruzam a virada do dia.
+- Testado com casos de horário conhecidos (ex.: 20h–23h → 60 min noturnos)
+  antes de ir para o cálculo real via API.
+
+### Versionamento de jornada
+- Nova tabela `jornada_versoes`: cada colaborador tem um histórico de
+  jornadas, cada uma vigente num período (`vigenciaInicio`/`vigenciaFim`).
+  Alterar a jornada de alguém (`PUT /api/colaboradores/:id` com `jornada` e,
+  opcionalmente, `jornadaVigenciaInicio`) fecha a versão anterior e abre uma
+  nova — **sem reescrever o passado**.
+- Testado de ponta a ponta: mudei a jornada de um colaborador de 8h para 6h
+  com vigência futura, e confirmei que o mês anterior continuou calculando
+  com 8h enquanto o mês seguinte já usa 6h.
+- Migration com **backfill automático**: colaboradores já cadastrados antes
+  dessa mudança ganham uma versão inicial com a jornada atual, vigente desde
+  a admissão — testado recriando o cenário (colaboradores existentes antes
+  da migration rodar).
+- `GET /api/colaboradores/:id/jornadas` retorna o histórico completo.
+
+### Auditoria geral
+- Nova tabela `auditoria` + `src/services/auditoria.js`, plugados em todas
+  as ações sensíveis: colaboradores (criar/editar/excluir), usuários
+  (criar/editar/excluir/resetar senha, com perfil antes/depois), batidas
+  (lançamento manual), abonos (aprovar/reprovar), férias/atestado/ocorrência
+  (criar/editar/excluir) e dados da empresa (editar).
+- Nunca bloqueia a operação principal se a gravação da auditoria falhar
+  (mesmo padrão defensivo do serviço de notificações).
+- `GET /api/auditoria?entidade=&entidadeId=&usuarioId=&dataInicio=&dataFim=`
+  — exclusivo de admin. Testado confirmando que uma alteração feita por um
+  coordenador aparece corretamente atribuída a ele na trilha. Tela: aba
+  **Auditoria**, com filtro por entidade e período.
+
+## 17. Painel ao Vivo (presença em tempo real + faltas/atrasos do mês)
+
+Nova aba **Painel ao Vivo** (coordenador/consulta/admin — é a aba padrão ao
+logar nesses perfis), com:
+
+- **Status de agora** de cada colaborador: Presente, Presente (atrasado), No
+  intervalo, Atrasado (ainda não bateu e já passou da tolerância), Ainda não
+  iniciou, Concluiu o dia, Ausente (férias/atestado/suspensão), Abonado ou
+  Folga — determinado por `src/services/dashboardAoVivo.js`, comparando o
+  relógio atual com o **horário de entrada padrão** e a **tolerância** de
+  cada colaborador (dois campos novos no cadastro).
+- **Cards de resumo** (quantos presentes, atrasados, etc. agora) e uma
+  tabela com **faltas e atrasos do mês corrente** por pessoa.
+- Atualiza sozinho a cada 30 segundos enquanto a aba estiver aberta.
+- Testado com 10 cenários de horário conhecidos na função pura de status
+  (ex.: bateu às 08:20 com tolerância até 08:05 → "presente atrasado") antes
+  de validar contra a API real, incluindo o status mudando de "atrasado"
+  para "presente (atrasado)" no exato momento em que uma batida real acontece.
+
+**Dois bugs reais encontrados e corrigidos durante essa implementação**
+(o segundo foi descoberto justamente ao testar o cadastro pela interface,
+não só por inspeção de código):
+
+1. **Dias futuros do mês corrente contavam como falta.** `calcularMes`
+   percorria o mês inteiro sem checar se o dia já tinha acontecido — todo
+   dia depois de hoje, sem batida (porque ainda não chegou), era contado
+   como falta. Corrigido: dias futuros não geram falta/atraso/intervalo
+   insuficiente. Testado confirmando que, num mês com 21 dias futuros
+   restantes, nenhum deles é contado.
+2. **`toleranciaMin` podia virar string e quebrar contas.** Quando o
+   colaborador é criado via formulário (multipart/form-data), o Sequelize
+   só converte o campo `INTEGER` para número de verdade depois de uma nova
+   leitura do banco — o objeto retornado *imediatamente* após `create()`
+   ainda guardava o valor como string. Isso quebrava a soma
+   `horaEntradaEsperada + tolerancia` (ex.: `480 + "10"` vira `"48010"` em
+   JavaScript, não `490`). Corrigido com um `set()` customizado no model
+   `Colaborador` que sempre grava como inteiro, e reforçado com `Number(...)`
+   nos pontos de cálculo. Testado reproduzindo o cenário exato (POST via
+   multipart, checando o tipo do campo na resposta imediata).
+
+## 18. Próximos passos sugeridos
 
 - Trocar `sequelize.sync()` por migrations antes de ir para produção.
 - Adicionar testes automatizados (Jest + Supertest) para as regras de cálculo.
 - Integrar com relógio de ponto físico homologado (protocolo REP-P) se for
   substituir um relógio biométrico existente.
+
+---
+
+**Desenvolvido por Danilo Cruz**

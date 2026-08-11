@@ -8,6 +8,9 @@ const EmpresaConfig = sequelize.define('EmpresaConfig', {
   razaoSocial: DataTypes.STRING,
   cnpj: DataTypes.STRING,
   atividadeEconomica: DataTypes.STRING,
+  cpfResponsavelRegistros: DataTypes.STRING, // CPF de quem responde pelas inclusões/alterações no REP (AFD tipo 2)
+  numeroRegistroInpiRepP: DataTypes.STRING, // número de registro do PTRP no INPI (AFD tipo 1, campo 7) — preencha após homologação
+  localPrestacaoServico: DataTypes.STRING,
 }, {
   tableName: 'empresa_config',
 });

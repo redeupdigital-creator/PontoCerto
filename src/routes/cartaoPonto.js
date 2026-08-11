@@ -1,7 +1,7 @@
 const express = require('express');
 const { Colaborador } = require('../models');
 const { calcularMes } = require('../services/calculo');
-const { autenticar, apenasProprioOuEquipe } = require('../middleware/auth');
+const { autenticar, apenasProprioColaborador } = require('../middleware/auth');
 
 const router = express.Router();
 router.use(autenticar);
@@ -9,7 +9,7 @@ router.use(autenticar);
 // GET /api/cartao-ponto/:colaboradorId?mes=2026-08
 // Retorna todos os dados prontos para montar o cartão de ponto impresso:
 // dados cadastrais + foto (URL) + tabela de batidas do mês + totais.
-router.get('/:colaboradorId', apenasProprioOuEquipe(req => req.params.colaboradorId), async (req, res) => {
+router.get('/:colaboradorId', apenasProprioColaborador(req => req.params.colaboradorId), async (req, res) => {
   const { colaboradorId } = req.params;
   const { mes } = req.query;
   if (!mes) return res.status(400).json({ erro: 'Informe mes (YYYY-MM)' });

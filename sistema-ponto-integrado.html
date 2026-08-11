@@ -316,14 +316,15 @@
         <input id="login-api" value="/api">
       </details>
     </div>
-    <div class="login-footer">© 2026 PontoCerto. Todos os direitos reservados.</div>
+    <div class="login-footer">© 2026 PontoCerto. Todos os direitos reservados.<br>Desenvolvido por Danilo Cruz</div>
   </div>
 </div>
 
 <div id="app">
   <nav class="sidebar">
     <div class="brand">PontoCerto<small>Módulo de Controle de Ponto</small></div>
-    <button data-tab="colaboradores" class="active"><span class="icon">01</span> Colaboradores</button>
+    <button data-tab="painel" class="active"><span class="icon">🟢</span> Painel ao Vivo</button>
+    <button data-tab="colaboradores"><span class="icon">01</span> Colaboradores</button>
     <button data-tab="ponto"><span class="icon">02</span> Registro de Ponto</button>
     <button data-tab="abonos"><span class="icon">03</span> Abono de Batidas</button>
     <button data-tab="ausencias"><span class="icon">04</span> Ausências</button>
@@ -331,6 +332,9 @@
     <button data-tab="cartao"><span class="icon">06</span> Cartão de Ponto</button>
     <button data-tab="config"><span class="icon">⚙</span> Feriados</button>
     <button data-tab="etiquetas"><span class="icon">🏷</span> Etiquetas</button>
+    <button data-tab="usuarios"><span class="icon">🔑</span> Usuários</button>
+    <button data-tab="auditoria"><span class="icon">📜</span> Auditoria</button>
+    <button data-tab="compliance"><span class="icon">⚖️</span> Compliance</button>
     <button data-tab="conta"><span class="icon">👤</span> Minha Conta</button>
     <div class="userbox">
       <div class="who" id="who-label"></div>
@@ -355,9 +359,10 @@ let MEU_COLABORADOR_ID = null;
 // não oferecer botões que o perfil não vai conseguir usar.
 const ABAS_POR_PERFIL = {
   colaborador: ['abonos', 'ausencias', 'cartao', 'config', 'conta'],
-  gestor: ['colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'conta'],
-  rh: ['colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'etiquetas', 'conta'],
-  admin: ['colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'etiquetas', 'conta'],
+  analista: ['colaboradores', 'ponto', 'abonos', 'cartao', 'config', 'conta'],
+  coordenador: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'conta'],
+  consulta: ['painel', 'colaboradores', 'relatorios', 'cartao', 'ausencias', 'config', 'conta'],
+  admin: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'etiquetas', 'usuarios', 'auditoria', 'compliance', 'conta'],
 };
 
 function abaPermitida(tab){
@@ -478,7 +483,7 @@ function showMsg(id, text, type){
    STATE / CACHE
    ============================================================ */
 let colaboradoresCache = [];
-let currentTab = 'colaboradores';
+let currentTab = 'painel';
 let subTab = { ausencias: 'ferias', relatorios: 'falta' };
 let selected = { colabPonto: null, colabCartao: null, mes: todayYM() };
 
@@ -516,8 +521,11 @@ async function refreshColaboradores(){
   colaboradoresCache = await apiFetch('/colaboradores');
 }
 
+let painelInterval = null;
 function render(){
+  if(painelInterval){ clearInterval(painelInterval); painelInterval = null; }
   const renderers = {
+    painel: renderPainel,
     colaboradores: renderColaboradores,
     ponto: renderPonto,
     abonos: renderAbonos,
@@ -526,6 +534,9 @@ function render(){
     cartao: renderCartao,
     config: renderConfig,
     etiquetas: renderEtiquetas,
+    usuarios: renderUsuarios,
+    auditoria: renderAuditoria,
+    compliance: renderCompliance,
     conta: renderConta
   };
   main.innerHTML = '';
@@ -533,12 +544,112 @@ function render(){
 }
 
 /* ============================================================
+   TAB: PAINEL AO VIVO
+   ============================================================ */
+const ROTULO_STATUS = {
+  presente: 'Presente', presente_atrasado: 'Presente (atrasado)', intervalo: 'No intervalo',
+  atrasado: 'Atrasado', nao_iniciado: 'Ainda não iniciou', concluido: 'Expediente concluído',
+  ausencia: 'Ausente', abonado: 'Abonado', folga: 'Folga/fim de semana',
+};
+const COR_STATUS = {
+  presente: 'green', presente_atrasado: 'amber', intervalo: 'gray',
+  atrasado: 'red', nao_iniciado: 'gray', concluido: 'green',
+  ausencia: 'gray', abonado: 'green', folga: 'gray',
+};
+const CARDS_RESUMO = [
+  { chave: 'presente', label: 'Presentes', icone: '🟢' },
+  { chave: 'presente_atrasado', label: 'Presentes (atrasados)', icone: '🟠' },
+  { chave: 'atrasado', label: 'Atrasados (não chegaram)', icone: '🔴' },
+  { chave: 'intervalo', label: 'No intervalo', icone: '🍽️' },
+  { chave: 'nao_iniciado', label: 'Ainda não iniciaram', icone: '⏳' },
+  { chave: 'concluido', label: 'Concluíram o dia', icone: '✅' },
+  { chave: 'ausencia', label: 'Ausentes (férias/atestado)', icone: '🛌' },
+  { chave: 'folga', label: 'Folga hoje', icone: '📅' },
+];
+
+async function renderPainel(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title">
+      <div><h1>Painel ao Vivo</h1><p>Status de cada colaborador agora, e faltas/atrasos do mês corrente</p></div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="painel-relogio" class="nums" style="color:var(--muted); font-size:13px;"></span>
+        <button class="btn ghost sm" id="btn-atualizar-painel">↻ Atualizar</button>
+      </div>
+    </div>
+    <div id="painel-cards" class="grid" style="grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;"></div>
+    <div class="card" id="painel-tabela"><div class="loading">Carregando...</div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-atualizar-painel').addEventListener('click', carregarPainel);
+
+  const atualizarRelogio = ()=>{
+    const el = document.getElementById('painel-relogio');
+    if(el) el.textContent = new Date().toLocaleTimeString('pt-BR');
+  };
+  atualizarRelogio();
+
+  await carregarPainel();
+  // Um único intervalo (1s) cuida do relógio e, a cada 30 ticks, atualiza os
+  // dados — evita vazar múltiplos timers ao trocar de aba repetidamente.
+  let ticks = 0;
+  painelInterval = setInterval(()=>{
+    atualizarRelogio();
+    ticks++;
+    if(ticks % 30 === 0 && currentTab==='painel') carregarPainel();
+  }, 1000);
+}
+
+async function carregarPainel(){
+  const cardsEl = document.getElementById('painel-cards');
+  const tabelaEl = document.getElementById('painel-tabela');
+  if(!cardsEl || !tabelaEl) return;
+
+  let dados;
+  try{ dados = await apiFetch('/dashboard/hoje'); }
+  catch(err){ tabelaEl.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  if(currentTab !== 'painel') return;
+
+  cardsEl.innerHTML = CARDS_RESUMO.map(c=>`
+    <div class="card" style="text-align:center; padding:16px; margin-bottom:0;">
+      <div style="font-size:22px;">${c.icone}</div>
+      <div style="font-size:26px; font-weight:700; color:var(--navy-dark); margin:4px 0;">${dados.contagem[c.chave]||0}</div>
+      <div style="font-size:11.5px; color:var(--muted);">${c.label}</div>
+    </div>
+  `).join('');
+
+  tabelaEl.innerHTML = `
+    <table>
+      <thead><tr><th></th><th>Colaborador</th><th>Cargo</th><th>Status agora</th><th>Entrada hoje</th><th>Faltas no mês</th><th>Atrasos no mês</th></tr></thead>
+      <tbody>
+        ${dados.colaboradores.map(c=>`
+          <tr>
+            <td><div class="photo-box" style="width:30px;height:36px;">${c.fotoPath?`<img src="${c.fotoPath.startsWith('http')?c.fotoPath:apiOrigin()+c.fotoPath}">`:'<div class="ph" style="font-size:7px;">—</div>'}</div></td>
+            <td><strong>${c.nome}</strong> ${c.matricula?`<span class="nums" style="color:var(--muted); font-size:11px;">(${c.matricula})</span>`:''}</td>
+            <td>${c.cargo||'—'}</td>
+            <td><span class="badge ${COR_STATUS[c.status]||'gray'}">${ROTULO_STATUS[c.status]||c.status}</span></td>
+            <td class="nums">${c.entrada||c.ultimaBatida||'—'}</td>
+            <td class="nums" style="color:${c.faltasNoMes>0?'var(--red)':'inherit'};">${c.faltasNoMes}</td>
+            <td class="nums" style="color:${c.diasComAtrasoNoMes>0?'var(--amber)':'inherit'};">${c.diasComAtrasoNoMes}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:11px; color:var(--muted); margin-top:10px;">Atualiza automaticamente a cada 30 segundos. Última atualização: ${dados.hoje} às ${new Date().toLocaleTimeString('pt-BR')}.</p>
+  `;
+}
+
+/* ============================================================
    TAB: COLABORADORES
    ============================================================ */
 function renderColaboradores(){
   const wrap = document.createElement('div');
+  const podeCadastrar = PERFIL === 'coordenador' || PERFIL === 'admin';
+  const podeExcluir = PERFIL === 'admin';
   wrap.innerHTML = `
     <div class="page-title"><div><h1>Colaboradores</h1><p>Cadastro de funcionários, jornada semanal e foto</p></div></div>
+    ${podeCadastrar ? `
     <div class="card">
       <h3>Novo colaborador</h3>
       <div class="grid cols-4" style="margin-bottom:12px;">
@@ -549,8 +660,12 @@ function renderColaboradores(){
       </div>
       <div class="grid cols-4" style="margin-bottom:12px;">
         <div class="field"><label>Data de admissão</label><input type="date" id="f-adm"></div>
+        <div class="field"><label>Horário de entrada padrão</label><input type="time" id="f-entrada" value="08:00"></div>
+        <div class="field"><label>Tolerância (minutos)</label><input type="number" id="f-tolerancia" value="5" min="0" max="60"></div>
         <div class="field"><label>Foto</label><input type="file" accept="image/*" id="f-foto"></div>
-        <div class="field" style="grid-column:span 2;">
+      </div>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field" style="grid-column:span 4;">
           <label>Jornada semanal (horas por dia)</label>
           <div style="display:flex; gap:6px;">
             ${DIA_KEYS.map((k,i)=>`<div style="flex:1;"><small style="color:var(--muted); font-size:10px;">${DIAS_SEMANA_ABR[i]}</small><input type="number" min="0" max="24" step="0.5" id="f-j-${k}" value="${k==='dom'||k==='sab'?'0':'8'}"></div>`).join('')}
@@ -559,12 +674,12 @@ function renderColaboradores(){
       </div>
       <div id="colab-msg"></div>
       <button class="btn gold" id="btn-add-colab">+ Adicionar colaborador</button>
-    </div>
+    </div>` : ''}
     <div class="card"><h3>Colaboradores cadastrados (${colaboradoresCache.length})</h3><div id="lista-colab"></div></div>
   `;
   main.appendChild(wrap);
 
-  document.getElementById('btn-add-colab').addEventListener('click', async ()=>{
+  if(podeCadastrar) document.getElementById('btn-add-colab').addEventListener('click', async ()=>{
     const nome = document.getElementById('f-nome').value.trim();
     if(!nome){ showMsg('colab-msg','Informe o nome do colaborador.','err'); return; }
     const jornada = {};
@@ -576,6 +691,8 @@ function renderColaboradores(){
     fd.append('cargo', document.getElementById('f-cargo').value.trim());
     fd.append('departamento', document.getElementById('f-depto').value.trim());
     fd.append('dataAdmissao', document.getElementById('f-adm').value);
+    fd.append('horaEntradaPadrao', document.getElementById('f-entrada').value || '08:00');
+    fd.append('toleranciaMin', document.getElementById('f-tolerancia').value || '5');
     fd.append('jornada', JSON.stringify(jornada));
     const fileInput = document.getElementById('f-foto');
     if(fileInput.files[0]) fd.append('foto', fileInput.files[0]);
@@ -601,7 +718,7 @@ function renderColaboradores(){
           <td>${c.cargo||'—'}</td>
           <td>${c.departamento||'—'}</td>
           <td class="nums">${DIA_KEYS.map(k=>c.jornada[k]).join('/')}</td>
-          <td><button class="btn danger sm" data-del="${c.id}">Remover</button></td>
+          <td>${podeExcluir?`<button class="btn danger sm" data-del="${c.id}">Remover</button>`:''}</td>
         </tr>`).join('')}
     </tbody></table>`;
     listaEl.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
@@ -752,7 +869,7 @@ async function renderAbonos(){
         return `<tr>
           <td>${c?c.nome:'—'}</td><td class="nums">${a.data}</td><td>${tiposLabel[a.tipoMotivo]}</td><td>${a.justificativa||'—'}</td>
           <td><span class="badge ${badge}">${a.status}</span></td>
-          <td>${a.status==='pendente' && PERFIL!=='colaborador' ?`<button class="btn sm gold" data-ap="${a.id}">Aprovar</button> <button class="btn sm danger" data-rp="${a.id}">Reprovar</button>`:''}</td>
+          <td>${a.status==='pendente' && (PERFIL==='analista'||PERFIL==='coordenador'||PERFIL==='admin') ?`<button class="btn sm gold" data-ap="${a.id}">Aprovar</button> <button class="btn sm danger" data-rp="${a.id}">Reprovar</button>`:''}</td>
         </tr>`;
       }).join('')}
     </tbody></table>`;
@@ -784,7 +901,7 @@ async function renderAusencias(){
 
   const content = document.getElementById('aus-content');
   const colabOptions = `<option value="">Selecione...</option>${colaboradoresCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}`;
-  const podeGerenciarAusencias = PERFIL !== 'colaborador';
+  const podeGerenciarAusencias = PERFIL === 'coordenador' || PERFIL === 'admin';
 
   if(subTab.ausencias==='ferias'){
     content.innerHTML = `
@@ -1097,7 +1214,7 @@ async function renderCartao(){
    ============================================================ */
 async function renderConfig(){
   const wrap = document.createElement('div');
-  const podeGerenciarFeriados = PERFIL === 'rh' || PERFIL === 'admin';
+  const podeGerenciarFeriados = PERFIL === 'admin';
   wrap.innerHTML = `
     <div class="page-title"><div><h1>Feriados</h1><p>Cadastro de feriados nacionais/estaduais/municipais usados no cálculo</p></div></div>
     <div class="card">
@@ -1281,6 +1398,269 @@ function gerarFolhaEtiquetas(empresa){
       </div>
     </div>`;
   }).join('');
+}
+
+/* ============================================================
+   TAB: USUÁRIOS (administração de acesso — só admin)
+   ============================================================ */
+const PERFIS_DISPONIVEIS = [
+  { valor: 'colaborador', rotulo: 'Colaborador — autoatendimento' },
+  { valor: 'analista', rotulo: 'Analista — ponto e abono' },
+  { valor: 'coordenador', rotulo: 'Coordenador — operacional completo' },
+  { valor: 'consulta', rotulo: 'Consulta — somente leitura' },
+  { valor: 'admin', rotulo: 'Administrador — acesso total' },
+];
+
+async function renderUsuarios(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Usuários</h1><p>Criação de login e definição de perfil de acesso (exclusivo do Administrador)</p></div></div>
+    <div class="card">
+      <h3>Novo usuário</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Login</label><input id="us-login" placeholder="nome.sobrenome"></div>
+        <div class="field"><label>Senha</label><input id="us-senha" type="password" placeholder="mín. 6 caracteres"></div>
+        <div class="field"><label>Perfil</label>
+          <select id="us-perfil">${PERFIS_DISPONIVEIS.map(p=>`<option value="${p.valor}">${p.rotulo}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Colaborador vinculado (opcional)</label>
+          <select id="us-colab"><option value="">— nenhum (usuário administrativo) —</option>${colaboradoresCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div id="us-msg"></div>
+      <button class="btn gold" id="btn-add-usuario">+ Criar usuário</button>
+    </div>
+    <div class="card"><h3>Usuários cadastrados</h3><div id="lista-usuarios"><div class="loading">Carregando...</div></div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-add-usuario').addEventListener('click', async ()=>{
+    const login = document.getElementById('us-login').value.trim();
+    const senha = document.getElementById('us-senha').value;
+    const perfil = document.getElementById('us-perfil').value;
+    const colaboradorId = document.getElementById('us-colab').value || null;
+    if(!login || !senha){ showMsg('us-msg','Informe login e senha.','err'); return; }
+    try{
+      await apiFetch('/usuarios', { method:'POST', body: JSON.stringify({ login, senha, perfil, colaboradorId }) });
+      showMsg('us-msg','Usuário criado.','ok');
+      document.getElementById('us-login').value = '';
+      document.getElementById('us-senha').value = '';
+      carregarListaUsuarios();
+    }catch(err){ showMsg('us-msg', err.message, 'err'); }
+  });
+
+  await carregarListaUsuarios();
+}
+
+async function carregarListaUsuarios(){
+  const cont = document.getElementById('lista-usuarios');
+  if(!cont) return;
+  let usuarios;
+  try{ usuarios = await apiFetch('/usuarios'); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+
+  const rotuloPerfil = Object.fromEntries(PERFIS_DISPONIVEIS.map(p=>[p.valor, p.rotulo.split(' — ')[0]]));
+
+  cont.innerHTML = usuarios.length===0 ? `<div class="empty">Nenhum usuário cadastrado.</div>` :
+    `<table><thead><tr><th>Login</th><th>Perfil</th><th>Colaborador</th><th>Ações</th></tr></thead><tbody>
+      ${usuarios.map(u=>{
+        const estilosPerfil = {
+          admin: 'background:var(--red-bg); color:var(--red);',
+          coordenador: 'background:#EAF1FB; color:#1D4ED8;',
+          analista: 'background:var(--amber-bg); color:var(--amber);',
+          consulta: 'background:#EDEEF0; color:var(--muted);',
+          colaborador: 'background:var(--green-bg); color:var(--green);',
+        };
+        return `
+        <tr>
+          <td class="nums">${u.login}</td>
+          <td><span class="badge" style="${estilosPerfil[u.perfil]||''}">${rotuloPerfil[u.perfil]||u.perfil}</span></td>
+          <td>${u.Colaborador ? u.Colaborador.nome : '—'}</td>
+          <td>
+            <button class="btn sm ghost" data-reset="${u.id}">Resetar senha</button>
+            ${u.login!=='admin' ? `<button class="btn sm danger" data-del="${u.id}">Remover</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
+
+  cont.querySelectorAll('[data-reset]').forEach(b=>b.addEventListener('click', async ()=>{
+    const novaSenha = prompt('Nova senha para este usuário (mín. 6 caracteres):');
+    if(!novaSenha) return;
+    try{
+      await apiFetch(`/usuarios/${b.dataset.reset}/senha`, { method:'PATCH', body: JSON.stringify({ novaSenha }) });
+      alert('Senha resetada com sucesso.');
+    }catch(err){ alert(err.message); }
+  }));
+  cont.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(confirm('Remover este usuário? Ele perderá o acesso ao sistema.')){
+      try{ await apiFetch(`/usuarios/${b.dataset.del}`, { method:'DELETE' }); carregarListaUsuarios(); }
+      catch(err){ alert(err.message); }
+    }
+  }));
+}
+
+/* ============================================================
+   TAB: AUDITORIA (admin only) — quem alterou o quê
+   ============================================================ */
+async function renderAuditoria(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Auditoria</h1><p>Trilha de quem alterou o quê — colaboradores, usuários, batidas, abonos, ausências e configurações</p></div></div>
+    <div class="card no-print" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      <div class="field" style="width:200px;"><label>Entidade</label>
+        <select id="aud-entidade">
+          <option value="">Todas</option>
+          <option value="Colaborador">Colaborador</option>
+          <option value="Usuario">Usuário</option>
+          <option value="Batida">Batida</option>
+          <option value="Abono">Abono</option>
+          <option value="Ferias">Férias</option>
+          <option value="Atestado">Atestado</option>
+          <option value="Ocorrencia">Ocorrência</option>
+          <option value="Empresa">Empresa</option>
+        </select>
+      </div>
+      <div class="field" style="width:170px;"><label>De</label><input type="date" id="aud-data-inicio"></div>
+      <div class="field" style="width:170px;"><label>Até</label><input type="date" id="aud-data-fim"></div>
+      <button class="btn gold" id="btn-filtrar-auditoria">Filtrar</button>
+    </div>
+    <div class="card" id="aud-lista"><div class="loading">Carregando...</div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-filtrar-auditoria').addEventListener('click', carregarAuditoria);
+  await carregarAuditoria();
+}
+
+async function carregarAuditoria(){
+  const cont = document.getElementById('aud-lista');
+  if(!cont) return;
+  cont.innerHTML = `<div class="loading">Carregando...</div>`;
+  const params = new URLSearchParams();
+  const entidade = document.getElementById('aud-entidade').value;
+  const dataInicio = document.getElementById('aud-data-inicio').value;
+  const dataFim = document.getElementById('aud-data-fim').value;
+  if(entidade) params.set('entidade', entidade);
+  if(dataInicio) params.set('dataInicio', dataInicio);
+  if(dataFim) params.set('dataFim', dataFim);
+
+  let registros;
+  try{ registros = await apiFetch(`/auditoria?${params.toString()}`); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+
+  const rotuloAcao = { create:'Criou', update:'Alterou', delete:'Removeu', aprovar:'Aprovou', reprovar:'Reprovou', reset_senha:'Resetou senha' };
+  const corAcao = { create:'green', update:'amber', delete:'red', aprovar:'green', reprovar:'red', reset_senha:'gray' };
+
+  cont.innerHTML = registros.length===0 ? `<div class="empty">Nenhum registro de auditoria no período/filtro selecionado.</div>` :
+    `<table><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Perfil</th><th>Ação</th><th>Entidade</th><th>Detalhes</th></tr></thead><tbody>
+      ${registros.map(r=>`
+        <tr>
+          <td class="nums">${new Date(r.createdAt).toLocaleString('pt-BR')}</td>
+          <td>${r.usuarioLogin||'—'}</td>
+          <td>${r.perfil||'—'}</td>
+          <td><span class="badge ${corAcao[r.acao]||'gray'}">${rotuloAcao[r.acao]||r.acao}</span></td>
+          <td>${r.entidade}</td>
+          <td style="font-size:11.5px; color:var(--muted); max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.detalhes?JSON.stringify(r.detalhes).replace(/"/g,'&quot;'):''}">${r.detalhes?JSON.stringify(r.detalhes):'—'}</td>
+        </tr>`).join('')}
+    </tbody></table>`;
+}
+
+/* ============================================================
+   TAB: COMPLIANCE (admin only) — AFD/Portaria 671, integridade, campos extras
+   ============================================================ */
+async function renderCompliance(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Compliance (Portaria 671/2021)</h1><p>Dados adicionais da empresa exigidos pelo AFD, exportação e verificação de integridade</p></div></div>
+
+    <div class="card">
+      <h3>Dados complementares da empresa (AFD)</h3>
+      <div class="grid cols-3" style="margin-bottom:12px;">
+        <div class="field"><label>CPF do responsável pelos registros</label><input id="cp-cpf-resp" placeholder="000.000.000-00"></div>
+        <div class="field"><label>Nº de registro no INPI (REP-P)</label><input id="cp-inpi" placeholder="preencher após homologação"></div>
+        <div class="field"><label>Local de prestação de serviço</label><input id="cp-local"></div>
+      </div>
+      <div id="cp-emp-msg"></div>
+      <button class="btn ghost sm" id="btn-salvar-compliance">Salvar</button>
+    </div>
+
+    <div class="card">
+      <h3>Exportar AFD (Arquivo Fonte de Dados)</h3>
+      <p style="font-size:13px; color:var(--muted); margin-top:-4px;">Leiaute conforme Anexo V da Portaria 671/2021 (REP-P). Veja os avisos abaixo antes de usar em fiscalização.</p>
+      <div class="grid cols-3" style="margin-bottom:12px;">
+        <div class="field"><label>De</label><input type="date" id="afd-data-inicio"></div>
+        <div class="field"><label>Até</label><input type="date" id="afd-data-fim"></div>
+      </div>
+      <button class="btn gold" id="btn-exportar-afd">⬇ Exportar AFD (.txt)</button>
+      <div id="afd-avisos" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <h3>Integridade da cadeia de marcações</h3>
+      <p style="font-size:13px; color:var(--muted); margin-top:-4px;">Confere se algum registro de marcação foi alterado fora da aplicação (a cadeia de hash SHA-256 quebraria).</p>
+      <button class="btn ghost" id="btn-checar-integridade">Verificar agora</button>
+      <div id="integridade-resultado" style="margin-top:14px;"></div>
+    </div>
+  `;
+  main.appendChild(wrap);
+
+  try{
+    const empresa = await apiFetch('/empresa');
+    document.getElementById('cp-cpf-resp').value = empresa.cpfResponsavelRegistros || '';
+    document.getElementById('cp-inpi').value = empresa.numeroRegistroInpiRepP || '';
+    document.getElementById('cp-local').value = empresa.localPrestacaoServico || '';
+  }catch(err){ showMsg('cp-emp-msg', err.message, 'err'); }
+
+  document.getElementById('btn-salvar-compliance').addEventListener('click', async ()=>{
+    try{
+      const atual = await apiFetch('/empresa');
+      await apiFetch('/empresa', { method:'PUT', body: JSON.stringify({
+        razaoSocial: atual.razaoSocial, cnpj: atual.cnpj, atividadeEconomica: atual.atividadeEconomica,
+        cpfResponsavelRegistros: document.getElementById('cp-cpf-resp').value,
+        numeroRegistroInpiRepP: document.getElementById('cp-inpi').value,
+        localPrestacaoServico: document.getElementById('cp-local').value,
+      })});
+      showMsg('cp-emp-msg', 'Salvo.', 'ok');
+    }catch(err){ showMsg('cp-emp-msg', err.message, 'err'); }
+  });
+
+  document.getElementById('btn-exportar-afd').addEventListener('click', async ()=>{
+    const btn = document.getElementById('btn-exportar-afd');
+    const original = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Gerando...';
+    const di = document.getElementById('afd-data-inicio').value;
+    const df = document.getElementById('afd-data-fim').value;
+    try{
+      const params = new URLSearchParams();
+      if(di) params.set('dataInicio', di);
+      if(df) params.set('dataFim', df);
+      params.set('formato', 'json');
+      const resultado = await apiFetch(`/afd/exportar?${params.toString()}`);
+      document.getElementById('afd-avisos').innerHTML = resultado.avisos.map(a=>`<div class="msg err" style="background:var(--amber-bg); color:var(--amber);">${a}</div>`).join('');
+      const blob = new Blob([resultado.conteudo], { type:'text/plain;charset=iso-8859-1' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = resultado.nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }catch(err){
+      document.getElementById('afd-avisos').innerHTML = `<div class="msg err">${err.message}</div>`;
+    }finally{
+      btn.disabled = false; btn.textContent = original;
+    }
+  });
+
+  document.getElementById('btn-checar-integridade').addEventListener('click', async ()=>{
+    const cont = document.getElementById('integridade-resultado');
+    cont.innerHTML = `<div class="loading">Verificando...</div>`;
+    try{
+      const r = await apiFetch('/afd/integridade');
+      cont.innerHTML = r.integro
+        ? `<div class="msg ok">✅ Cadeia íntegra — ${r.totalRegistros} registro(s) de marcação verificado(s), nenhuma alteração detectada.</div>`
+        : `<div class="msg err">⚠️ Cadeia quebrada a partir do NSR ${r.quebrouNoNsr} — algum registro foi alterado fora da aplicação.</div>`;
+    }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; }
+  });
 }
 
 /* ============================================================

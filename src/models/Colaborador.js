@@ -23,13 +23,25 @@ const Colaborador = sequelize.define('Colaborador', {
       this.setDataValue('jornada', JSON.stringify(value));
     },
   },
-  toleranciaMin: { type: DataTypes.INTEGER, defaultValue: 5 },
+  toleranciaMin: {
+    type: DataTypes.INTEGER,
+    defaultValue: 5,
+    set(value) {
+      // Garante inteiro mesmo quando vem como string de formulário
+      // (multipart/form-data) — sem isso, o valor em memória logo após
+      // criar/atualizar fica como string até a próxima leitura do banco,
+      // o que quebra somas numéricas (ex: "480" + "10" = "48010").
+      this.setDataValue('toleranciaMin', value === '' || value === null || value === undefined ? 5 : parseInt(value, 10));
+    },
+  },
+  horaEntradaPadrao: { type: DataTypes.STRING(5), defaultValue: '08:00' }, // "HH:MM" — usado no painel ao vivo para saber quem está atrasado agora
   email: DataTypes.STRING,
-  gestorId: DataTypes.UUID, // colaboradorId de quem é o gestor direto (para escopo de aprovação/consulta)
+  gestorId: DataTypes.UUID, // informativo (quem é o coordenador/responsável direto); não é mais usado para controle de acesso
   // Campos usados na etiqueta impressa do cartão de ponto físico:
   numeroRegistro: DataTypes.STRING,
   ctps: DataTypes.STRING,
   localTrabalho: DataTypes.STRING,
+  cpf: DataTypes.STRING, // necessário para o AFD (Portaria 671/2021)
 }, {
   tableName: 'colaboradores',
 });

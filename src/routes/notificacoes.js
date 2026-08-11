@@ -7,14 +7,14 @@ const router = express.Router();
 router.use(autenticar);
 
 // Colaborador vê as suas + as amplas (colaboradorId null, ex: alerta que não é dele).
-// RH/gestor/admin veem tudo (inclui as "amplas" destinadas à gestão, como abono pendente).
+// Analista/coordenador/consulta/admin veem tudo (inclui as "amplas" destinadas à gestão, como abono pendente).
 router.get('/', async (req, res) => {
   const { perfil, colaboradorId } = req.usuario;
   const where = {};
   if (perfil === 'colaborador') {
     where.colaboradorId = colaboradorId;
   }
-  // gestor/rh/admin: sem filtro -> veem notificações amplas (colaboradorId null) e as suas, se houver
+  // demais perfis: sem filtro -> veem notificações amplas (colaboradorId null) e as suas, se houver
   const notificacoes = await Notificacao.findAll({ where, order: [['createdAt', 'DESC']], limit: 100 });
   res.json(notificacoes);
 });

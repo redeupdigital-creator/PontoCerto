@@ -132,6 +132,23 @@
   .abono-item .linha1{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
   .abono-item .data{font-weight:700; font-family:'IBM Plex Mono',monospace;}
   .abono-item .motivo{font-size:12.5px; color:var(--muted);}
+
+  /* ---------- Admin (menu + telas) ---------- */
+  .admin-back{display:flex; align-items:center; gap:8px; margin-bottom:14px; cursor:pointer; color:var(--navy); font-weight:600; font-size:13.5px;}
+  .admin-menu-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .admin-menu-item{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 12px; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+  }
+  .admin-menu-item:active{background:#F4F5F7;}
+  .admin-menu-item .ic{font-size:24px;}
+  .admin-menu-item .lbl{font-size:12px; font-weight:600; color:var(--text);}
+  .mini-card{border:1px solid var(--line); border-radius:12px; padding:11px; margin-bottom:8px;}
+  .mini-card .linha1{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .resumo-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;}
+  .resumo-item{background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px; text-align:center;}
+  .resumo-item .num{font-size:18px; font-weight:700; font-family:'IBM Plex Mono',monospace;}
+  .resumo-item .lbl{font-size:10px; color:var(--muted);}
 </style>
 </head>
 <body>
@@ -162,6 +179,7 @@
     <button data-tab="ponto" class="active"><span class="ic">⏱</span>Ponto</button>
     <button data-tab="abono"><span class="ic">📝</span>Abono</button>
     <button data-tab="cartao"><span class="ic">📅</span>Cartão</button>
+    <button data-tab="admin" id="tab-admin" style="display:none;"><span class="ic">🛠</span>Admin</button>
     <button data-tab="conta"><span class="ic">👤</span>Conta</button>
   </nav>
 </div>
@@ -178,7 +196,7 @@ let MEU_ID = null;
 async function apiFetch(path, options = {}) {
   const headers = options.headers ? { ...options.headers } : {};
   if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
-  if (options.body) headers['Content-Type'] = 'application/json';
+  if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (res.status === 204) return null;
   let data; try { data = await res.json(); } catch (e) { data = null; }
@@ -209,6 +227,7 @@ async function doLogin(){
     if (!MEU_ID) {
       msgEl.innerHTML = ''; // segue mesmo assim, mas a tela de ponto vai avisar
     }
+    document.getElementById('tab-admin').style.display = PERFIL === 'colaborador' ? 'none' : 'flex';
     render();
   }catch(err){
     msgEl.innerHTML = `<div class="login-err">${err.message.includes('fetch') ? 'Não foi possível conectar à API.' : err.message}</div>`;
@@ -218,7 +237,7 @@ async function doLogin(){
 }
 
 document.getElementById('btn-logout').addEventListener('click', ()=>{
-  TOKEN = null; PERFIL = null; MEU_ID = null;
+  TOKEN = null; PERFIL = null; MEU_ID = null; adminView = null;
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 });
@@ -227,11 +246,13 @@ document.getElementById('btn-logout').addEventListener('click', ()=>{
    NAV
    ============================================================ */
 let currentTab = 'ponto';
+let adminView = null; // qual ferramenta admin está aberta (null = menu principal)
 document.querySelectorAll('nav.tabbar button[data-tab]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     currentTab = btn.dataset.tab;
+    if(currentTab === 'admin') adminView = null;
     render();
   });
 });
@@ -239,6 +260,7 @@ document.querySelectorAll('nav.tabbar button[data-tab]').forEach(btn=>{
 const main = document.getElementById('main');
 function render(){
   main.innerHTML = '';
+  if(currentTab === 'admin'){ renderAdmin(); return; }
   ({ ponto: renderPonto, abono: renderAbono, cartao: renderCartao, conta: renderConta })[currentTab]();
 }
 
@@ -471,6 +493,7 @@ function renderConta(){
       <div id="conta-msg"></div>
       <button class="btn gold" id="btn-trocar-senha">Salvar nova senha</button>
     </div>
+    <p style="text-align:center; font-size:11px; color:var(--muted); margin-top:8px;">PontoCerto · Desenvolvido por Danilo Cruz</p>
   `;
   document.getElementById('btn-trocar-senha').addEventListener('click', async ()=>{
     const senhaAtual = document.getElementById('conta-atual').value;
@@ -483,6 +506,354 @@ function renderConta(){
       showMsg('conta-msg','Senha alterada com sucesso.','ok');
       ['conta-atual','conta-nova','conta-confirma'].forEach(id=>document.getElementById(id).value='');
     }catch(err){ showMsg('conta-msg', err.message, 'err'); }
+  });
+}
+
+/* ============================================================
+   ADMIN — menu de ferramentas + telas (visível para quem não é "colaborador")
+   ============================================================ */
+const FERRAMENTAS_ADMIN = [
+  { id:'painel', icone:'🟢', label:'Painel ao Vivo', perfis:['coordenador','consulta','admin'] },
+  { id:'colaboradores', icone:'👥', label:'Colaboradores', perfis:['analista','coordenador','consulta','admin'] },
+  { id:'registroponto', icone:'⏱️', label:'Registro de Ponto', perfis:['analista','coordenador','admin'] },
+  { id:'ausencias', icone:'🌴', label:'Ausências', perfis:['coordenador','consulta','admin'] },
+  { id:'relatorios', icone:'📊', label:'Relatórios', perfis:['coordenador','consulta','admin'] },
+  { id:'feriados', icone:'📅', label:'Feriados', perfis:['coordenador','consulta','admin'] },
+  { id:'usuarios', icone:'🔑', label:'Usuários', perfis:['admin'] },
+  { id:'auditoria', icone:'📜', label:'Auditoria', perfis:['admin'] },
+  { id:'compliance', icone:'⚖️', label:'Compliance', perfis:['admin'] },
+];
+
+function voltarAoMenuAdmin(){ adminView = null; render(); }
+function botaoVoltar(titulo){
+  return `<div class="admin-back" onclick="voltarAoMenuAdmin()">← ${titulo}</div>`;
+}
+
+function renderAdmin(){
+  if(adminView){
+    const telas = {
+      painel: renderAdminPainel, colaboradores: renderAdminColaboradores,
+      registroponto: renderAdminRegistroPonto, ausencias: renderAdminAusencias,
+      relatorios: renderAdminRelatorios, feriados: renderAdminFeriados,
+      usuarios: renderAdminUsuarios, auditoria: renderAdminAuditoria, compliance: renderAdminCompliance,
+    };
+    telas[adminView]();
+    return;
+  }
+  const ferramentas = FERRAMENTAS_ADMIN.filter(f => f.perfis.includes(PERFIL));
+  main.innerHTML = `
+    <div class="page-title"><h1>Administração</h1><p>Ferramentas de gestão do PontoCerto</p></div>
+    <div class="admin-menu-grid">
+      ${ferramentas.map(f=>`<div class="admin-menu-item" data-tool="${f.id}"><span class="ic">${f.icone}</span><span class="lbl">${f.label}</span></div>`).join('')}
+    </div>
+    ${ferramentas.length===0 ? '<div class="empty">Nenhuma ferramenta administrativa disponível para o seu perfil.</div>' : ''}
+  `;
+  main.querySelectorAll('[data-tool]').forEach(el=>{
+    el.addEventListener('click', ()=>{ adminView = el.dataset.tool; render(); });
+  });
+}
+
+/* ---- Painel ao Vivo ---- */
+async function renderAdminPainel(){
+  main.innerHTML = botaoVoltar('Painel ao Vivo') + `<div class="loading">Carregando...</div>`;
+  let dados;
+  try{ dados = await apiFetch('/dashboard/hoje'); }
+  catch(err){ main.innerHTML = botaoVoltar('Painel ao Vivo') + `<div class="msg err">${err.message}</div>`; return; }
+  if(adminView !== 'painel') return;
+
+  const rotulo = { presente:'Presente', presente_atrasado:'Atrasado (presente)', intervalo:'Intervalo', atrasado:'Atrasado', nao_iniciado:'Não iniciou', concluido:'Concluído', ausencia:'Ausente', abonado:'Abonado', folga:'Folga' };
+  const cor = { presente:'green', presente_atrasado:'amber', intervalo:'gray', atrasado:'red', nao_iniciado:'gray', concluido:'green', ausencia:'gray', abonado:'green', folga:'gray' };
+
+  main.innerHTML = botaoVoltar('Painel ao Vivo') + `
+    <div class="resumo-grid">
+      <div class="resumo-item"><div class="num">${dados.contagem.presente||0}</div><div class="lbl">Presentes</div></div>
+      <div class="resumo-item"><div class="num">${dados.contagem.atrasado||0}</div><div class="lbl">Atrasados</div></div>
+      <div class="resumo-item"><div class="num">${dados.contagem.ausencia||0}</div><div class="lbl">Ausentes</div></div>
+      <div class="resumo-item"><div class="num">${dados.contagem.concluido||0}</div><div class="lbl">Concluíram</div></div>
+    </div>
+    ${dados.colaboradores.map(c=>`
+      <div class="mini-card">
+        <div class="linha1">
+          <strong>${c.nome}</strong>
+          <span class="badge ${cor[c.status]||'gray'}">${rotulo[c.status]||c.status}</span>
+        </div>
+        <div style="font-size:11.5px; color:var(--muted); margin-top:3px;">Faltas no mês: ${c.faltasNoMes} · Atrasos no mês: ${c.diasComAtrasoNoMes}</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+/* ---- Colaboradores ---- */
+async function renderAdminColaboradores(){
+  const podeCadastrar = PERFIL==='coordenador' || PERFIL==='admin';
+  main.innerHTML = botaoVoltar('Colaboradores') + (podeCadastrar ? `
+    <div class="card">
+      <label>Nome</label><input id="ac-nome">
+      <label>Cargo</label><input id="ac-cargo">
+      <label>E-mail</label><input id="ac-email">
+      <div id="ac-msg"></div>
+      <button class="btn gold" id="btn-ac-add">+ Adicionar colaborador</button>
+    </div>` : '') + `<div id="ac-lista"><div class="loading">Carregando...</div></div>`;
+
+  if(podeCadastrar) document.getElementById('btn-ac-add').addEventListener('click', async ()=>{
+    const nome = document.getElementById('ac-nome').value.trim();
+    if(!nome){ showMsg('ac-msg','Informe o nome.','err'); return; }
+    const fd = new FormData();
+    fd.append('nome', nome);
+    fd.append('cargo', document.getElementById('ac-cargo').value.trim());
+    fd.append('email', document.getElementById('ac-email').value.trim());
+    fd.append('jornada', JSON.stringify({dom:0,seg:8,ter:8,qua:8,qui:8,sex:8,sab:0}));
+    try{
+      await apiFetch('/colaboradores', { method:'POST', body: fd });
+      showMsg('ac-msg','Colaborador criado.','ok');
+      document.getElementById('ac-nome').value='';
+      carregarListaColaboradores();
+    }catch(err){ showMsg('ac-msg', err.message, 'err'); }
+  });
+  await carregarListaColaboradores();
+}
+async function carregarListaColaboradores(){
+  const cont = document.getElementById('ac-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch('/colaboradores'); }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhum colaborador.</div>` :
+    lista.map(c=>`<div class="mini-card"><div class="linha1"><strong>${c.nome}</strong><span style="font-size:11px; color:var(--muted);">${c.matricula||''}</span></div><div style="font-size:12px; color:var(--muted);">${c.cargo||'—'}</div></div>`).join('');
+}
+
+/* ---- Registro de Ponto (lançamento manual, um dia por vez) ---- */
+async function renderAdminRegistroPonto(){
+  let colaboradores = [];
+  try{ colaboradores = await apiFetch('/colaboradores'); }catch(e){}
+  main.innerHTML = botaoVoltar('Registro de Ponto') + `
+    <div class="card">
+      <label>Colaborador</label>
+      <select id="rp-colab"><option value="">Selecione...</option>${colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
+      <label>Data</label><input type="date" id="rp-data" value="${new Date().toISOString().slice(0,10)}">
+      <label>Entrada</label><input type="time" id="rp-e1">
+      <label>Saída (intervalo)</label><input type="time" id="rp-s1">
+      <label>Volta (intervalo)</label><input type="time" id="rp-e2">
+      <label>Saída</label><input type="time" id="rp-s2">
+      <div id="rp-msg"></div>
+      <button class="btn gold" id="btn-rp-salvar">Salvar batidas do dia</button>
+    </div>
+  `;
+  document.getElementById('btn-rp-salvar').addEventListener('click', async ()=>{
+    const colaboradorId = document.getElementById('rp-colab').value;
+    const data = document.getElementById('rp-data').value;
+    if(!colaboradorId || !data){ showMsg('rp-msg','Selecione colaborador e data.','err'); return; }
+    try{
+      await apiFetch('/batidas', { method:'PUT', body: JSON.stringify({
+        colaboradorId, data,
+        e1: document.getElementById('rp-e1').value || null,
+        s1: document.getElementById('rp-s1').value || null,
+        e2: document.getElementById('rp-e2').value || null,
+        s2: document.getElementById('rp-s2').value || null,
+      })});
+      showMsg('rp-msg','Batidas salvas.','ok');
+    }catch(err){ showMsg('rp-msg', err.message, 'err'); }
+  });
+}
+
+/* ---- Ausências ---- */
+async function renderAdminAusencias(){
+  const podeCriar = PERFIL==='coordenador' || PERFIL==='admin';
+  main.innerHTML = botaoVoltar('Ausências') + `
+    <div class="tabs-sub" style="display:flex; gap:6px; margin-bottom:14px;">
+      <button class="btn ghost sm" data-tipo="ferias">Férias</button>
+      <button class="btn ghost sm" data-tipo="atestados">Atestados</button>
+      <button class="btn ghost sm" data-tipo="ocorrencias">Ocorrências</button>
+    </div>
+    <div id="aus-conteudo"></div>
+  `;
+  main.querySelectorAll('[data-tipo]').forEach(b=>b.addEventListener('click', ()=>carregarAusenciasMobile(b.dataset.tipo, podeCriar)));
+  carregarAusenciasMobile('ferias', podeCriar);
+}
+async function carregarAusenciasMobile(tipo, podeCriar){
+  const cont = document.getElementById('aus-conteudo');
+  if(!cont) return;
+  cont.innerHTML = `<div class="loading">Carregando...</div>`;
+  let lista;
+  try{ lista = await apiFetch(`/ausencias/${tipo}`); }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhum registro.</div>` :
+    lista.map(a=>`<div class="mini-card">
+      <div class="linha1"><strong>${a.Colaborador?.nome || a.colaboradorId?.slice(0,8) || '—'}</strong></div>
+      <div style="font-size:12px; color:var(--muted);">${a.dataInicioGozo || a.dataInicio || ''} ${a.dataFimGozo || a.dataFim ? 'a '+(a.dataFimGozo||a.dataFim) : ''} ${a.tipo?('· '+a.tipo):''}</div>
+    </div>`).join('');
+}
+
+/* ---- Relatórios ---- */
+async function renderAdminRelatorios(){
+  main.innerHTML = botaoVoltar('Relatórios') + `
+    <div class="card">
+      <label>Tipo</label>
+      <select id="rel-tipo">
+        <option value="falta-atraso">Falta e Atraso</option>
+        <option value="ferias">Férias</option>
+        <option value="ocorrencias">Suspensão/Advertência</option>
+        <option value="atestados">Atestado</option>
+      </select>
+      <label>Mês (só falta/atraso)</label><input type="month" id="rel-mes" value="${new Date().toISOString().slice(0,7)}">
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn gold" id="btn-rel-xlsx" style="flex:1;">⬇ Excel</button>
+        <button class="btn ghost" id="btn-rel-pdf" style="flex:1;">⬇ PDF</button>
+      </div>
+    </div>
+    <div id="rel-lista"><div class="loading">Carregando...</div></div>
+  `;
+  document.getElementById('rel-tipo').addEventListener('change', carregarRelatorioMobile);
+  document.getElementById('rel-mes').addEventListener('change', carregarRelatorioMobile);
+  document.getElementById('btn-rel-xlsx').addEventListener('click', ()=>baixarRelatorioMobile('xlsx'));
+  document.getElementById('btn-rel-pdf').addEventListener('click', ()=>baixarRelatorioMobile('pdf'));
+  carregarRelatorioMobile();
+}
+async function carregarRelatorioMobile(){
+  const cont = document.getElementById('rel-lista');
+  if(!cont) return;
+  const tipo = document.getElementById('rel-tipo').value;
+  const mes = document.getElementById('rel-mes').value;
+  cont.innerHTML = `<div class="loading">Carregando...</div>`;
+  try{
+    const qs = tipo==='falta-atraso' ? `?mes=${mes}` : '';
+    const dados = await apiFetch(`/relatorios/${tipo}${qs}`);
+    const linhas = tipo==='falta-atraso' ? dados.linhas : dados;
+    cont.innerHTML = linhas.length===0 ? `<div class="empty">Nenhum registro.</div>` :
+      linhas.map(l=>`<div class="mini-card"><div class="linha1"><strong>${l.colaborador||'—'}</strong><span style="font-size:11px;">${l.data||l.periodo||''}</span></div></div>`).join('');
+  }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; }
+}
+async function baixarRelatorioMobile(formato){
+  const tipo = document.getElementById('rel-tipo').value;
+  const mes = document.getElementById('rel-mes').value;
+  try{
+    const res = await fetch(`${API_BASE}/relatorios/${tipo}/exportar?formato=${formato}&mes=${mes}`, { headers:{ Authorization:`Bearer ${TOKEN}` } });
+    if(!res.ok) throw new Error('Falha ao gerar arquivo');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${tipo}-${mes}.${formato}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(err){ alert(err.message); }
+}
+
+/* ---- Feriados ---- */
+async function renderAdminFeriados(){
+  const podeGerenciar = PERFIL==='admin';
+  main.innerHTML = botaoVoltar('Feriados') + (podeGerenciar ? `
+    <div class="card">
+      <label>Data</label><input type="date" id="fer-data">
+      <label>Descrição</label><input id="fer-desc">
+      <div id="fer-msg"></div>
+      <button class="btn gold" id="btn-fer-add">+ Adicionar</button>
+    </div>` : '') + `<div id="fer-lista"><div class="loading">Carregando...</div></div>`;
+
+  if(podeGerenciar) document.getElementById('btn-fer-add').addEventListener('click', async ()=>{
+    const data = document.getElementById('fer-data').value;
+    if(!data) return;
+    try{
+      await apiFetch('/feriados', { method:'POST', body: JSON.stringify({ data, descricao: document.getElementById('fer-desc').value }) });
+      showMsg('fer-msg','Feriado adicionado.','ok');
+      carregarFeriadosMobile();
+    }catch(err){ showMsg('fer-msg', err.message, 'err'); }
+  });
+  carregarFeriadosMobile();
+}
+async function carregarFeriadosMobile(){
+  const cont = document.getElementById('fer-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch('/feriados'); }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhum feriado.</div>` :
+    lista.map(f=>`<div class="mini-card"><div class="linha1"><strong>${f.data}</strong><span style="font-size:12px; color:var(--muted);">${f.descricao||''}</span></div></div>`).join('');
+}
+
+/* ---- Usuários ---- */
+async function renderAdminUsuarios(){
+  let colaboradores = [];
+  try{ colaboradores = await apiFetch('/colaboradores'); }catch(e){}
+  main.innerHTML = botaoVoltar('Usuários') + `
+    <div class="card">
+      <label>Login</label><input id="us-login">
+      <label>Senha</label><input type="password" id="us-senha">
+      <label>Perfil</label>
+      <select id="us-perfil">
+        <option value="colaborador">Colaborador</option>
+        <option value="analista">Analista</option>
+        <option value="coordenador">Coordenador</option>
+        <option value="consulta">Consulta</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <label>Colaborador vinculado</label>
+      <select id="us-colab"><option value="">— nenhum —</option>${colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
+      <div id="us-msg"></div>
+      <button class="btn gold" id="btn-us-add">+ Criar usuário</button>
+    </div>
+    <div id="us-lista"><div class="loading">Carregando...</div></div>
+  `;
+  document.getElementById('btn-us-add').addEventListener('click', async ()=>{
+    const login = document.getElementById('us-login').value.trim();
+    const senha = document.getElementById('us-senha').value;
+    if(!login || !senha){ showMsg('us-msg','Informe login e senha.','err'); return; }
+    try{
+      await apiFetch('/usuarios', { method:'POST', body: JSON.stringify({
+        login, senha, perfil: document.getElementById('us-perfil').value,
+        colaboradorId: document.getElementById('us-colab').value || null,
+      })});
+      showMsg('us-msg','Usuário criado.','ok');
+      carregarUsuariosMobile();
+    }catch(err){ showMsg('us-msg', err.message, 'err'); }
+  });
+  carregarUsuariosMobile();
+}
+async function carregarUsuariosMobile(){
+  const cont = document.getElementById('us-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch('/usuarios'); }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  cont.innerHTML = lista.map(u=>`<div class="mini-card"><div class="linha1"><strong>${u.login}</strong><span class="badge gray">${u.perfil}</span></div></div>`).join('');
+}
+
+/* ---- Auditoria ---- */
+async function renderAdminAuditoria(){
+  main.innerHTML = botaoVoltar('Auditoria') + `<div id="aud-lista"><div class="loading">Carregando...</div></div>`;
+  const cont = document.getElementById('aud-lista');
+  let lista;
+  try{ lista = await apiFetch('/auditoria?limit=50'); }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  const rotuloAcao = { create:'Criou', update:'Alterou', delete:'Removeu', aprovar:'Aprovou', reprovar:'Reprovou', reset_senha:'Resetou senha' };
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Sem registros.</div>` :
+    lista.map(a=>`<div class="mini-card">
+      <div class="linha1"><strong>${a.usuarioLogin||'—'}</strong><span style="font-size:11px; color:var(--muted);">${new Date(a.createdAt).toLocaleString('pt-BR')}</span></div>
+      <div style="font-size:12px; color:var(--muted);">${rotuloAcao[a.acao]||a.acao} · ${a.entidade}</div>
+    </div>`).join('');
+}
+
+/* ---- Compliance ---- */
+async function renderAdminCompliance(){
+  main.innerHTML = botaoVoltar('Compliance') + `
+    <div class="card">
+      <button class="btn gold" id="btn-afd" style="margin-bottom:10px;">⬇ Exportar AFD</button>
+      <button class="btn ghost" id="btn-integridade">Verificar integridade</button>
+      <div id="compliance-resultado" style="margin-top:12px;"></div>
+    </div>
+  `;
+  document.getElementById('btn-afd').addEventListener('click', async ()=>{
+    try{
+      const r = await apiFetch('/afd/exportar?formato=json');
+      document.getElementById('compliance-resultado').innerHTML = r.avisos.map(a=>`<div class="msg err" style="background:var(--amber-bg); color:var(--amber);">${a}</div>`).join('');
+      const blob = new Blob([r.conteudo], { type:'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = r.nomeArquivo; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }catch(err){ document.getElementById('compliance-resultado').innerHTML = `<div class="msg err">${err.message}</div>`; }
+  });
+  document.getElementById('btn-integridade').addEventListener('click', async ()=>{
+    const cont = document.getElementById('compliance-resultado');
+    cont.innerHTML = `<div class="loading">Verificando...</div>`;
+    try{
+      const r = await apiFetch('/afd/integridade');
+      cont.innerHTML = r.integro ? `<div class="msg ok">✅ Cadeia íntegra (${r.totalRegistros} registros).</div>` : `<div class="msg err">⚠️ Quebrou no NSR ${r.quebrouNoNsr}.</div>`;
+    }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; }
   });
 }
 
