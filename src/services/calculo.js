@@ -8,6 +8,25 @@ const ADICIONAL_NOTURNO_PERCENTUAL = 0.2; // +20% conforme CLT art. 73
 const INTERVALO_MINIMO_MIN = 60; // 1h, obrigatório para jornada > 6h (CLT art. 71)
 const JORNADA_MINIMA_PARA_INTERVALO = 6 * 60;
 
+// Cache em memória de `calcularMes`, com TTL curto. O motivo de existir: o
+// Painel ao Vivo recalcula o mês inteiro de CADA colaborador a cada 30s
+// (para mostrar faltas/atrasos do mês) — sem cache, isso fica caro rápido
+// conforme a empresa cresce. Para nunca mostrar dado desatualizado depois de
+// uma edição, toda rota que grava algo que afeta o cálculo (batida, abono,
+// ausência) chama `invalidarCacheColaborador` — o TTL aqui é só uma rede de
+// segurança, não a garantia principal de atualização.
+const TTL_CACHE_MES_MS = 5 * 60 * 1000; // 5 minutos
+const cacheMes = new Map(); // chave: "colaboradorId:ano-mes" -> { resultado, expiraEm }
+
+function invalidarCacheColaborador(colaboradorId) {
+  for (const chave of cacheMes.keys()) {
+    if (chave.startsWith(`${colaboradorId}:`)) cacheMes.delete(chave);
+  }
+}
+function invalidarCacheMes(colaboradorId, ano, mes) {
+  cacheMes.delete(`${colaboradorId}:${ano}-${mes}`);
+}
+
 function timeToMin(t) {
   if (!t) return null;
   const [h, m] = t.split(':').map(Number);
@@ -35,20 +54,43 @@ function jornadaPrevistaMin(jornada, dow) {
 }
 
 /**
- * Retorna a jornada (objeto {dom,seg,...}) vigente numa data específica,
- * olhando o histórico de versões do colaborador. Isso garante que meses
- * passados continuem calculados com a jornada que valia naquela época,
- * mesmo que a jornada atual do colaborador já tenha mudado depois.
+ * Retorna a VERSÃO de jornada vigente numa data específica (não só o objeto
+ * de horas por dia da semana — o registro completo, incluindo tipo de
+ * escala). Isso garante que meses passados continuem calculados com a
+ * jornada que valia naquela época, mesmo que ela já tenha mudado depois.
  * Se não houver nenhuma versão cobrindo a data (dado legado antes do
- * versionamento existir), cai para `jornadaAtualFallback`.
+ * versionamento existir), sintetiza uma versão "semanal" com
+ * `jornadaAtualFallback`.
  */
 function buscarJornadaVigente(versoes, dstr, jornadaAtualFallback) {
   const candidatas = versoes.filter((v) => v.vigenciaInicio <= dstr && (!v.vigenciaFim || v.vigenciaFim >= dstr));
-  if (candidatas.length === 0) return jornadaAtualFallback || {};
+  if (candidatas.length === 0) {
+    return { jornada: jornadaAtualFallback || {}, tipoEscala: 'semanal', ciclo: null, dataReferenciaCiclo: null };
+  }
   // Se por algum motivo houver mais de uma cobrindo a data (não deveria),
   // usa a de início mais recente.
   candidatas.sort((a, b) => (a.vigenciaInicio < b.vigenciaInicio ? 1 : -1));
-  return candidatas[0].jornada;
+  const v = candidatas[0];
+  return { jornada: v.jornada, tipoEscala: v.tipoEscala || 'semanal', ciclo: v.ciclo || null, dataReferenciaCiclo: v.dataReferenciaCiclo || null };
+}
+
+/**
+ * Minutos previstos de trabalho numa data, considerando o tipo de escala:
+ * - "semanal" (padrão): olha só o dia da semana (ex.: seg=8h).
+ * - "ciclica": conta quantos dias se passaram desde `dataReferenciaCiclo` e
+ *   usa esse deslocamento (módulo o tamanho do ciclo) para escolher a
+ *   posição no array `ciclo` — é assim que 12x36, 6x1 etc. funcionam, já
+ *   que não seguem o dia da semana, seguem uma contagem contínua de dias.
+ */
+function previstaMinParaData(versaoVigente, dstr, dow) {
+  if (versaoVigente.tipoEscala === 'ciclica' && Array.isArray(versaoVigente.ciclo) && versaoVigente.ciclo.length > 0 && versaoVigente.dataReferenciaCiclo) {
+    const diffMs = new Date(`${dstr}T00:00:00Z`) - new Date(`${versaoVigente.dataReferenciaCiclo}T00:00:00Z`);
+    const diffDias = Math.round(diffMs / 86400000);
+    let posicao = diffDias % versaoVigente.ciclo.length;
+    if (posicao < 0) posicao += versaoVigente.ciclo.length;
+    return (versaoVigente.ciclo[posicao] || 0) * 60;
+  }
+  return jornadaPrevistaMin(versaoVigente.jornada, dow);
 }
 
 /**
@@ -86,7 +128,7 @@ async function calcularDia(colaborador, y, m, d, context) {
 
   const feriado = context.feriados.has(dstr);
   const jornadaVigente = buscarJornadaVigente(context.jornadaVersoes, dstr, colaborador.jornada);
-  const prevista = feriado ? 0 : jornadaPrevistaMin(jornadaVigente, dow);
+  const prevista = feriado ? 0 : previstaMinParaData(jornadaVigente, dstr, dow);
 
   const abonado = context.abonosAprovados.has(dstr);
   const ausencia = buscarAusencia(context, dstr);
@@ -167,6 +209,12 @@ function buscarAusencia(context, dstr) {
  * Retorna { dias: [...], totais: {...} }
  */
 async function calcularMes(colaborador, ano, mes) {
+  const chaveCache = `${colaborador.id}:${ano}-${mes}`;
+  const emCache = cacheMes.get(chaveCache);
+  if (emCache && emCache.expiraEm > Date.now()) {
+    return emCache.resultado;
+  }
+
   const nd = daysInMonth(ano, mes);
   const inicio = dateStr(ano, mes, 1);
   const fim = dateStr(ano, mes, nd);
@@ -218,7 +266,7 @@ async function calcularMes(colaborador, ano, mes) {
     if (dia.diaComAtraso) diasComAtraso += 1;
   }
 
-  return {
+  const resultado = {
     dias,
     totais: {
       trabalhado: minToTime(totalTrabalhado),
@@ -231,9 +279,12 @@ async function calcularMes(colaborador, ano, mes) {
       diasIntervaloInsuficiente,
     },
   };
+  cacheMes.set(chaveCache, { resultado, expiraEm: Date.now() + TTL_CACHE_MES_MS });
+  return resultado;
 }
 
 module.exports = {
   calcularMes, calcularDia, minToTime, timeToMin, daysInMonth, dateStr,
-  buscarJornadaVigente, minutosNoturnos, jornadaPrevistaMin,
+  buscarJornadaVigente, minutosNoturnos, jornadaPrevistaMin, previstaMinParaData,
+  invalidarCacheColaborador, invalidarCacheMes,
 };

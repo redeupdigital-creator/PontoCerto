@@ -14,7 +14,7 @@ router.get('/:colaboradorId', apenasProprioColaborador(req => req.params.colabor
   const { mes } = req.query;
   if (!mes) return res.status(400).json({ erro: 'Informe mes (YYYY-MM)' });
 
-  const colaborador = await Colaborador.findByPk(colaboradorId);
+  const colaborador = await Colaborador.findOne({ where: { id: colaboradorId, empresaId: req.usuario.empresaId } });
   if (!colaborador) return res.status(404).json({ erro: 'Colaborador não encontrado' });
 
   const [ano, mesNum] = mes.split('-').map(Number);

@@ -10,5 +10,8 @@
     { "src": "/app", "dest": "/mobile/index.html" },
     { "src": "/app/(.*)", "dest": "/mobile/$1" },
     { "src": "/painel", "dest": "/sistema-ponto-integrado.html" }
+  ],
+  "crons": [
+    { "path": "/api/dashboard/monitorar-atrasos", "schedule": "*/15 * * * *" }
   ]
 }

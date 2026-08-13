@@ -42,6 +42,19 @@ const Colaborador = sequelize.define('Colaborador', {
   ctps: DataTypes.STRING,
   localTrabalho: DataTypes.STRING,
   cpf: DataTypes.STRING, // necessário para o AFD (Portaria 671/2021)
+  empresaId: { type: DataTypes.UUID, allowNull: false }, // isolamento multi-empresa
+  // Desligamento / recontratação:
+  tipoDesligamento: DataTypes.STRING,
+  motivoDesligamento: DataTypes.TEXT,
+  anexoDesligamentoPath: DataTypes.STRING,
+  // Folha de pagamento:
+  salarioBase: DataTypes.DECIMAL(10, 2),
+  tipoContrato: { type: DataTypes.STRING, defaultValue: 'clt' },
+  banco: DataTypes.STRING,
+  agencia: DataTypes.STRING,
+  conta: DataTypes.STRING,
+  tipoConta: DataTypes.STRING,
+  chavePix: DataTypes.STRING,
 }, {
   tableName: 'colaboradores',
 });

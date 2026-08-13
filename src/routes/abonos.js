@@ -1,19 +1,27 @@
 const express = require('express');
+const { Op } = require('sequelize');
 const { Abono, Colaborador } = require('../models');
 const { autenticar, permitir, apenasProprioColaborador } = require('../middleware/auth');
 const { notificar } = require('../services/notificacoes');
 const { registrar } = require('../services/auditoria');
+const { invalidarCacheColaborador } = require('../services/calculo');
+const { colaboradorDaEmpresa, idsColaboradoresDaEmpresa } = require('../utils/empresa');
 
 const router = express.Router();
 router.use(autenticar);
 
 // Listar: colaborador só vê os próprios; analista/coordenador/consulta/admin
-// veem todos (com filtro opcional por colaboradorId).
+// veem todos DA MESMA EMPRESA (com filtro opcional por colaboradorId).
 router.get('/', apenasProprioColaborador(req => req.query.colaboradorId || req.usuario.colaboradorId), async (req, res) => {
   const where = {};
   if (req.query.status) where.status = req.query.status;
   const colaboradorId = req.usuario.perfil === 'colaborador' ? req.usuario.colaboradorId : req.query.colaboradorId;
-  if (colaboradorId) where.colaboradorId = colaboradorId;
+  if (colaboradorId) {
+    if (!(await colaboradorDaEmpresa(colaboradorId, req.usuario.empresaId))) return res.status(404).json({ erro: 'Colaborador não encontrado' });
+    where.colaboradorId = colaboradorId;
+  } else {
+    where.colaboradorId = { [Op.in]: await idsColaboradoresDaEmpresa(req.usuario.empresaId) };
+  }
   const abonos = await Abono.findAll({ where, order: [['createdAt', 'DESC']] });
   res.json(abonos);
 });
@@ -27,6 +35,9 @@ router.post('/', permitir('colaborador', 'analista', 'coordenador', 'admin'), ap
   if (!colaboradorId || !data || !tipoMotivo) {
     return res.status(400).json({ erro: 'Informe colaboradorId, data e tipoMotivo' });
   }
+  const colaborador = await colaboradorDaEmpresa(colaboradorId, req.usuario.empresaId);
+  if (!colaborador) return res.status(404).json({ erro: 'Colaborador não encontrado' });
+
   const abono = await Abono.create({
     colaboradorId,
     data,
@@ -36,13 +47,14 @@ router.post('/', permitir('colaborador', 'analista', 'coordenador', 'admin'), ap
     solicitadoPor: req.usuario.login,
     status: 'pendente',
   });
+  invalidarCacheColaborador(colaboradorId);
 
-  const colaborador = await Colaborador.findByPk(colaboradorId);
   await notificar({
-    colaboradorId: null, // notificação ampla, para quem processa aprovações
+    empresaId: req.usuario.empresaId,
+    colaboradorId: null, // notificação ampla, para quem processa aprovações (mas só dentro da mesma empresa, via empresaId acima)
     tipo: 'abono_pendente',
     titulo: 'Novo abono de batida aguardando aprovação',
-    mensagem: `${colaborador ? colaborador.nome : 'Um colaborador'} solicitou abono para ${data} (${tipoMotivo}). Justificativa: ${justificativa || '—'}`,
+    mensagem: `${colaborador.nome} solicitou abono para ${data} (${tipoMotivo}). Justificativa: ${justificativa || '—'}`,
     emailDestino: process.env.NOTIFICACAO_GESTOR_EMAIL || null,
   });
 
@@ -52,12 +64,16 @@ router.post('/', permitir('colaborador', 'analista', 'coordenador', 'admin'), ap
 // Aprovar (analista/coordenador/admin)
 router.patch('/:id/aprovar', permitir('analista', 'coordenador', 'admin'), async (req, res) => {
   const abono = await Abono.findByPk(req.params.id);
-  if (!abono) return res.status(404).json({ erro: 'Abono não encontrado' });
+  if (!abono || !(await colaboradorDaEmpresa(abono.colaboradorId, req.usuario.empresaId))) {
+    return res.status(404).json({ erro: 'Abono não encontrado' });
+  }
   await abono.update({ status: 'aprovado', aprovadorId: req.usuario.id, dataDecisao: new Date() });
+  invalidarCacheColaborador(abono.colaboradorId);
   await registrar({ usuario: req.usuario, acao: 'aprovar', entidade: 'Abono', entidadeId: abono.id, detalhes: { colaboradorId: abono.colaboradorId, data: abono.data } });
 
   const colaborador = await Colaborador.findByPk(abono.colaboradorId);
   await notificar({
+    empresaId: req.usuario.empresaId,
     colaboradorId: abono.colaboradorId,
     tipo: 'abono_aprovado',
     titulo: 'Seu abono de batida foi aprovado',
@@ -71,12 +87,16 @@ router.patch('/:id/aprovar', permitir('analista', 'coordenador', 'admin'), async
 // Reprovar (analista/coordenador/admin)
 router.patch('/:id/reprovar', permitir('analista', 'coordenador', 'admin'), async (req, res) => {
   const abono = await Abono.findByPk(req.params.id);
-  if (!abono) return res.status(404).json({ erro: 'Abono não encontrado' });
+  if (!abono || !(await colaboradorDaEmpresa(abono.colaboradorId, req.usuario.empresaId))) {
+    return res.status(404).json({ erro: 'Abono não encontrado' });
+  }
   await abono.update({ status: 'reprovado', aprovadorId: req.usuario.id, dataDecisao: new Date() });
+  invalidarCacheColaborador(abono.colaboradorId);
   await registrar({ usuario: req.usuario, acao: 'reprovar', entidade: 'Abono', entidadeId: abono.id, detalhes: { colaboradorId: abono.colaboradorId, data: abono.data } });
 
   const colaborador = await Colaborador.findByPk(abono.colaboradorId);
   await notificar({
+    empresaId: req.usuario.empresaId,
     colaboradorId: abono.colaboradorId,
     tipo: 'abono_reprovado',
     titulo: 'Seu abono de batida foi reprovado',

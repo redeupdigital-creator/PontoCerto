@@ -3,7 +3,8 @@ const sequelize = require('../db');
 
 const RegistroPontoAfd = sequelize.define('RegistroPontoAfd', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  nsr: { type: DataTypes.INTEGER, allowNull: false, unique: true },
+  empresaId: DataTypes.UUID,
+  nsr: { type: DataTypes.INTEGER, allowNull: false },
   colaboradorId: { type: DataTypes.UUID, allowNull: false },
   dataHoraMarcacao: { type: DataTypes.DATE, allowNull: false },
   dataHoraGravacao: { type: DataTypes.DATE, allowNull: false },

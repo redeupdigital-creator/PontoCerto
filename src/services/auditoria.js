@@ -15,6 +15,7 @@ const { Auditoria } = require('../models');
 async function registrar({ usuario, acao, entidade, entidadeId = null, detalhes = null }) {
   try {
     await Auditoria.create({
+      empresaId: usuario ? usuario.empresaId : null,
       usuarioId: usuario ? usuario.id : null,
       usuarioLogin: usuario ? usuario.login : null,
       perfil: usuario ? usuario.perfil : null,

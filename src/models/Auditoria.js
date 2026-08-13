@@ -3,6 +3,7 @@ const sequelize = require('../db');
 
 const Auditoria = sequelize.define('Auditoria', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  empresaId: DataTypes.UUID,
   usuarioId: DataTypes.UUID,
   usuarioLogin: DataTypes.STRING,
   perfil: DataTypes.STRING,

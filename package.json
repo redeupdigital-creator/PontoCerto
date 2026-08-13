@@ -10,7 +10,9 @@
     "seed": "node src/seed.js",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
-    "migrate:status": "sequelize-cli db:migrate:status"
+    "migrate:status": "sequelize-cli db:migrate:status",
+    "backup": "bash scripts/backup.sh",
+    "restore": "bash scripts/restore.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.2",

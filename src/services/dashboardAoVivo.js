@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const {
   Colaborador, Batida, Feriado, Ferias, Atestado, Ocorrencia, Abono, JornadaVersao,
 } = require('../models');
-const { timeToMin, minToTime, buscarJornadaVigente, jornadaPrevistaMin, calcularMes } = require('./calculo');
+const { timeToMin, minToTime, buscarJornadaVigente, previstaMinParaData, calcularMes } = require('./calculo');
 
 function dataAtualStr(agora) {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
@@ -14,10 +14,10 @@ function dataAtualStr(agora) {
  * Não depende de "atraso em minutos totais" (que só faz sentido ao final do
  * dia) — compara o relógio atual com o horário de entrada esperado.
  */
-function statusAoVivo({ colaborador, batidaHoje, jornadaHoje, dow, ausenciaHoje, abonadoHoje, feriadoHoje, agora }) {
+function statusAoVivo({ colaborador, batidaHoje, jornadaVigente, dstr, dow, ausenciaHoje, abonadoHoje, feriadoHoje, agora }) {
   if (ausenciaHoje) return { status: 'ausencia', detalhe: ausenciaHoje.tipo };
 
-  const prevista = feriadoHoje ? 0 : jornadaPrevistaMin(jornadaHoje, dow);
+  const prevista = feriadoHoje ? 0 : previstaMinParaData(jornadaVigente, dstr, dow);
   if (prevista === 0) return { status: 'folga' };
 
   if (abonadoHoje) return { status: 'abonado' };
@@ -48,25 +48,26 @@ function statusAoVivo({ colaborador, batidaHoje, jornadaHoje, dow, ausenciaHoje,
 }
 
 /**
- * Monta o painel ao vivo: status de agora + faltas/atrasos do mês corrente
- * para cada colaborador ativo.
+ * Monta o painel ao vivo de UMA empresa: status de agora + faltas/atrasos do
+ * mês corrente para cada colaborador ativo dela.
  */
-async function montarPainelAoVivo() {
+async function montarPainelAoVivo(empresaId) {
   const agora = new Date();
   const hoje = dataAtualStr(agora);
   const dow = agora.getDay();
   const ano = agora.getFullYear();
   const mes = agora.getMonth() + 1;
 
-  const colaboradores = await Colaborador.findAll({ where: { status: 'ativo' }, order: [['nome', 'ASC']] });
+  const colaboradores = await Colaborador.findAll({ where: { status: 'ativo', empresaId }, order: [['nome', 'ASC']] });
+  const idsEmpresa = colaboradores.map((c) => c.id);
 
   const [batidasHoje, feriadosHoje, feriasAtivas, atestadosAtivos, suspensoesAtivas, abonosHoje] = await Promise.all([
-    Batida.findAll({ where: { data: hoje } }),
-    Feriado.findAll({ where: { data: hoje } }),
-    Ferias.findAll({ where: { dataInicioGozo: { [Op.lte]: hoje }, dataFimGozo: { [Op.gte]: hoje } } }),
-    Atestado.findAll({ where: { dataInicio: { [Op.lte]: hoje }, dataFim: { [Op.gte]: hoje } } }),
-    Ocorrencia.findAll({ where: { tipo: 'suspensao', dataInicio: { [Op.lte]: hoje } } }),
-    Abono.findAll({ where: { data: hoje, status: 'aprovado' } }),
+    Batida.findAll({ where: { data: hoje, colaboradorId: { [Op.in]: idsEmpresa } } }),
+    Feriado.findAll({ where: { data: hoje, empresaId } }),
+    Ferias.findAll({ where: { dataInicioGozo: { [Op.lte]: hoje }, dataFimGozo: { [Op.gte]: hoje }, colaboradorId: { [Op.in]: idsEmpresa } } }),
+    Atestado.findAll({ where: { dataInicio: { [Op.lte]: hoje }, dataFim: { [Op.gte]: hoje }, colaboradorId: { [Op.in]: idsEmpresa } } }),
+    Ocorrencia.findAll({ where: { tipo: 'suspensao', dataInicio: { [Op.lte]: hoje }, colaboradorId: { [Op.in]: idsEmpresa } } }),
+    Abono.findAll({ where: { data: hoje, status: 'aprovado', colaboradorId: { [Op.in]: idsEmpresa } } }),
   ]);
 
   const feriadoHoje = feriadosHoje.length > 0;
@@ -84,7 +85,7 @@ async function montarPainelAoVivo() {
   for (const colaborador of colaboradores) {
     // eslint-disable-next-line no-await-in-loop
     const versoes = await JornadaVersao.findAll({ where: { colaboradorId: colaborador.id } });
-    const jornadaHoje = buscarJornadaVigente(versoes, hoje, colaborador.jornada);
+    const jornadaVigente = buscarJornadaVigente(versoes, hoje, colaborador.jornada);
 
     let ausenciaHoje = null;
     if (suspensaoPorColaborador[colaborador.id]) ausenciaHoje = { tipo: 'suspensao' };
@@ -94,7 +95,8 @@ async function montarPainelAoVivo() {
     const resultado = statusAoVivo({
       colaborador,
       batidaHoje: batidaPorColaborador[colaborador.id],
-      jornadaHoje,
+      jornadaVigente,
+      dstr: hoje,
       dow,
       ausenciaHoje,
       abonadoHoje: abonoPorColaborador.has(colaborador.id),

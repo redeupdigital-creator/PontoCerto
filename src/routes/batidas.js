@@ -3,6 +3,8 @@ const { Batida } = require('../models');
 const { autenticar, apenasProprioColaborador, permitir } = require('../middleware/auth');
 const { registrar } = require('../services/auditoria');
 const { registrarMarcacaoBruta } = require('../services/afd');
+const { invalidarCacheColaborador } = require('../services/calculo');
+const { colaboradorDaEmpresa } = require('../utils/empresa');
 
 const router = express.Router();
 router.use(autenticar);
@@ -11,6 +13,9 @@ router.use(autenticar);
 router.get('/', apenasProprioColaborador(req => req.query.colaboradorId), async (req, res) => {
   const { colaboradorId, mes } = req.query;
   if (!colaboradorId || !mes) return res.status(400).json({ erro: 'Informe colaboradorId e mes (YYYY-MM)' });
+  if (!(await colaboradorDaEmpresa(colaboradorId, req.usuario.empresaId))) {
+    return res.status(404).json({ erro: 'Colaborador não encontrado' });
+  }
   const { Op } = require('sequelize');
   const inicio = `${mes}-01`;
   const fim = `${mes}-31`;
@@ -25,6 +30,9 @@ router.get('/', apenasProprioColaborador(req => req.query.colaboradorId), async 
 router.put('/', permitir('analista', 'coordenador', 'admin'), async (req, res) => {
   const { colaboradorId, data, e1, s1, e2, s2, origem } = req.body;
   if (!colaboradorId || !data) return res.status(400).json({ erro: 'Informe colaboradorId e data' });
+  if (!(await colaboradorDaEmpresa(colaboradorId, req.usuario.empresaId))) {
+    return res.status(404).json({ erro: 'Colaborador não encontrado' });
+  }
 
   const [batida] = await Batida.findOrCreate({
     where: { colaboradorId, data },
@@ -32,6 +40,7 @@ router.put('/', permitir('analista', 'coordenador', 'admin'), async (req, res) =
   });
   const antes = { e1: batida.e1, s1: batida.s1, e2: batida.e2, s2: batida.s2 };
   await batida.update({ e1, s1, e2, s2, origem: origem || batida.origem });
+  invalidarCacheColaborador(colaboradorId);
   await registrar({
     usuario: req.usuario, acao: 'update', entidade: 'Batida', entidadeId: batida.id,
     detalhes: { colaboradorId, data, antes, depois: { e1, s1, e2, s2 } },
@@ -85,13 +94,14 @@ router.post('/bater', async (req, res) => {
     atualizacao[`${proximoSlot}Precisao`] = typeof precisao === 'number' ? precisao : null;
   }
   await batida.update(atualizacao);
+  invalidarCacheColaborador(colaboradorId);
 
   // Registro imutável, numerado (NSR) e encadeado por hash — é a marcação de
   // ponto de verdade, para fins do AFD (Portaria 671/2021). Não bloqueia a
   // resposta ao usuário se falhar (o registro de exibição já foi salvo).
   let registroAfd = null;
   try {
-    registroAfd = await registrarMarcacaoBruta({ colaboradorId, dataHoraMarcacao: agora, origem: coletor === 'browser' ? 'browser' : 'app' });
+    registroAfd = await registrarMarcacaoBruta({ empresaId: req.usuario.empresaId, colaboradorId, dataHoraMarcacao: agora, origem: coletor === 'browser' ? 'browser' : 'app' });
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[afd] falha ao registrar marcação bruta (não bloqueia a batida):', err.message);

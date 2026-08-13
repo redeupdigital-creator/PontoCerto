@@ -23,8 +23,9 @@ function getTransporter() {
  * quem chamou — falha de e-mail não pode derrubar a operação principal
  * (ex.: aprovar um abono não pode falhar por causa do envio de e-mail).
  */
-async function notificar({ colaboradorId = null, tipo, titulo, mensagem, emailDestino = null }) {
+async function notificar({ empresaId, colaboradorId = null, tipo, titulo, mensagem, emailDestino = null }) {
   const notificacao = await Notificacao.create({
+    empresaId,
     colaboradorId,
     tipo,
     titulo,

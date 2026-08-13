@@ -301,6 +301,13 @@ dois modos). Depois é só `npm run migrate && npm start`.
   serverless), siga **`DEPLOY_SUPABASE_VERCEL.md`** — é uma arquitetura
   diferente (função serverless em vez de processo de longa duração, fotos no
   Supabase Storage em vez de disco local) e tem seu próprio guia.
+- Para uma **VPS (ex.: Hostgator)** com processo de longa duração gerenciado
+  por PM2 + Nginx + SSL grátis (Let's Encrypt), siga **`DEPLOY_HOSTGATOR_VPS.md`**
+  — inclui um script (`scripts/setup-vps.sh`) que automatiza a instalação
+  inteira numa VPS Ubuntu/Debian nova, e `ecosystem.config.js`/`nginx/pontocerto.conf`
+  já prontos. O `ecosystem.config.js` foi testado de verdade durante o
+  desenvolvimento: subi a aplicação via PM2, matei o processo à força
+  (`kill -9`) e confirmei que ele reinicia sozinho automaticamente.
 
 ## 14. Estrutura de pastas
 
@@ -452,7 +459,286 @@ não só por inspeção de código):
    nos pontos de cálculo. Testado reproduzindo o cenário exato (POST via
    multipart, checando o tipo do campo na resposta imediata).
 
-## 18. Próximos passos sugeridos
+## 18. CPF obrigatório, escala cíclica, alerta de atraso, paginação e backup
+
+Última rodada de melhorias, a partir de uma auditoria do sistema — 5 itens,
+todos com evidência de teste real, incluindo dois bugs genuínos encontrados
+(e corrigidos) durante o próprio processo de testar:
+
+### CPF obrigatório e validado
+
+Cadastro de colaborador agora exige CPF (`src/utils/cpf.js`), validado pelo
+algoritmo oficial de dígitos verificadores — não é só "tem 11 números".
+Testado contra CPFs de teste públicos conhecidos (`111.444.777-35`,
+`529.982.247-25`) e contra tentativas de CPF inválido (rejeitado com `400`).
+
+### Escala cíclica (12x36, 6x1, plantões)
+
+Antes, a jornada só sabia representar "N horas por dia da semana" — não
+cobria escalas que não seguem o dia da semana. Agora, cada versão de
+jornada pode ser `semanal` (como sempre) ou `ciclica`, com um array de
+horas por posição do ciclo (`[12,0]` = 12x36) e uma data de referência.
+Testado matematicamente (inclusive datas anteriores à referência) e depois
+criando um colaborador de verdade em 12x36 via API, confirmando que o
+cartão de ponto alterna 12h/0h corretamente dia após dia.
+
+### Alerta automático de atraso
+
+`src/services/monitorAtrasos.js` verifica periodicamente quem está com
+status "atrasado" no Painel ao Vivo e notifica — sem duplicar no mesmo dia.
+Roda sozinho a cada 15 min em hospedagem tradicional (`src/server.js`); na
+Vercel, é acionado por um Cron Job (`vercel.json`) batendo em
+`GET/POST /api/dashboard/monitorar-atrasos`, protegido por `CRON_SECRET`
+(a própria Vercel envia esse valor automaticamente como
+`Authorization: Bearer` quando a variável de ambiente está configurada —
+não precisa escrever o segredo em nenhum arquivo do repositório).
+
+**Bug real encontrado e corrigido**: a checagem de "já notificado hoje"
+comparava pelo `colaboradorId` do funcionário específico, mas a notificação
+era criada com `colaboradorId: null` (pensada como "ampla") — nunca batiam,
+e o monitor mandava notificação duplicada a cada execução. Corrigido para
+usar o `colaboradorId` real (que também é visível para coordenador/admin,
+já que a listagem deles não filtra por colaborador). Testado: 1ª chamada
+notifica, 2ª e 3ª chamadas no mesmo dia não duplicam.
+
+**Gap descoberto no processo**: não existia nenhuma tela de notificações no
+sistema — só o endpoint. Criada a aba **Notificações**, com badge de não
+lidas no menu (atualiza a cada 60s) e marcação de lida — sem isso, o alerta
+de atraso seria invisível na prática.
+
+### Paginação e performance
+
+- `GET /api/auditoria` agora pagina de verdade (`?limit=&pagina=`), com
+  `X-Total-Count`/`X-Pagina`/`X-Total-Paginas` nos headers de resposta
+  (expostos via CORS).
+- O Painel ao Vivo recalculava o mês inteiro de cada colaborador a cada 30s
+  de atualização automática — caro numa empresa maior. Agora
+  `calcularMes` tem um cache em memória (TTL de 5 min como rede de
+  segurança), **invalidado imediatamente** sempre que algo que afeta o
+  cálculo muda: lançar/bater ponto, aprovar/reprovar abono, criar/editar/
+  excluir férias/atestado/ocorrência. Testado o cenário que importava: editar
+  uma batida e consultar o cartão de ponto imediatamente depois — o total
+  mudou na hora, sem esperar os 5 minutos do TTL.
+
+### Política de backup
+
+`scripts/backup.sh` e `scripts/restore.sh` (também disponíveis como
+`npm run backup` / `npm run restore`), com detecção automática de
+SQLite/Postgres/Supabase a partir do `.env`. **Testado de verdade**: gerei
+um backup, alterei um dado (simulando um desastre), restaurei, e confirmei
+que o dado voltou ao valor original. A política completa — frequência,
+retenção, backup automático da Supabase vs. cron manual em VPS, e o
+procedimento de testar a restauração periodicamente — está em
+**`BACKUP.md`**.
+
+## 19. Refresh visual (identidade "tech" em todo o sistema)
+
+A tela de login já tinha ganhado um visual moderno (inspirado no estilo
+"FiscalOS": dark, gradiente ciano→roxo, padrão de pontos) numa rodada
+anterior — mas só a tela de login. O resto do painel e o app mobile
+continuavam com o visual antigo (cards planos, inputs padrão do navegador,
+sidebar sólida sem profundidade, e uma inconsistência de ícones: as abas
+mais antigas usavam números "01, 02..." enquanto as mais novas usavam
+emoji). Essa rodada estende a mesma identidade visual para todo o sistema:
+
+- **Sidebar do painel**: gradiente escuro com padrão de pontos (igual ao
+  login), logo com ícone em caixa, item ativo com brilho ciano em vez de
+  destaque plano.
+- **Ícones consistentes**: todas as abas agora usam emoji temático (antes
+  misturava números com emoji).
+- **Botões primários**: gradiente ciano→roxo com leve elevação no hover, em
+  vez do dourado plano.
+- **Cards de estatística do Painel ao Vivo**: badge de ícone colorido com
+  fundo suave (glow), em vez de só um emoji solto.
+- **Inputs**: bordas arredondadas com anel de foco ciano, em vez do azul
+  padrão do navegador.
+- **App mobile**: tela de login redesenhada no mesmo estilo dark/gradiente
+  (antes era só um cartão centralizado simples), cabeçalho e botão de bater
+  ponto com o mesmo gradiente, indicador de aba ativa na barra inferior com
+  uma barrinha de gradiente.
+
+Testado visualmente (Chromium, antes/depois) e funcionalmente (jsdom) tanto
+no painel quanto no app mobile — a mudança foi só de CSS/ícones, nenhuma
+lógica de negócio foi tocada, e os testes confirmam que login, formulários e
+o fluxo de bater ponto continuam funcionando normalmente.
+
+## 20. Módulo de RH (folha, desligamento/recontratação, NR-1, EPI, anexos)
+
+Rodada grande de expansão de RH, com evidência de teste real em cada parte:
+
+### Folha de pagamento
+Aba nova com dados cadastrais (salário, tipo de contrato, banco/agência/
+conta/PIX — direto no cadastro de colaborador) e histórico de holerites
+mensais com anexo em PDF. Testado via API real, incluindo a proteção contra
+lançar dois holerites para a mesma competência (`409 Conflict`).
+
+**Nota sobre os campos**: não recebi o arquivo de referência mencionado no
+pedido — usei uma estrutura padrão de mercado. Se os campos reais forem
+diferentes, é só uma migration adicional pra ajustar.
+
+### Desligamento e recontratação
+- Botão **Desligar** na lista de colaboradores (tipo, motivo, data, anexo
+  do termo de rescisão) — grava um registro de histórico separado
+  (`colaborador_desligamentos`) e marca o colaborador como inativo.
+- Ao tentar cadastrar um colaborador com um **CPF que já existe como
+  inativo**, o sistema detecta automaticamente e mostra um modal oferecendo
+  **reativar o cadastro existente** em vez de duplicar — com o histórico de
+  ponto, ausências e desligamentos anteriores todo preservado.
+- Testado o ciclo completo pela interface: desliguei um colaborador,
+  confirmei que sumiu do filtro "Ativos" e apareceu em "Desligados", tentei
+  recadastrar o mesmo CPF e confirmei que o modal de recontratação apareceu
+  com o nome certo, reativei, e confirmei o status voltando a "ativo".
+- Relatório de Desligamentos, com exportação Excel/PDF.
+
+### NR-1 (Gestão de Riscos Psicossociais)
+Cadastro de ações (treinamento, palestra, ginástica laboral, avaliação de
+risco), com carga horária e anexo de material/lista de presença. Ao
+registrar a participação de um colaborador com horas de abono, o sistema
+**gera automaticamente um Abono já aprovado** para aquele dia — testado
+confirmando que o abono aparece na lista de abonos aprovados do colaborador
+logo após registrar a presença, sem precisar de uma segunda aprovação manual.
+
+### Solicitações de EPI
+Colaborador pode solicitar EPI pra si mesmo; coordenador/admin podem
+solicitar pra qualquer um e marcar como entregue. Relatório dedicado com
+exportação.
+
+### Anexos nas Ausências
+As três sub-abas de Ausências (Férias, Atestados, Advertência/Suspensão)
+agora aceitam anexo — recibo de férias, atestado médico, termo de
+advertência/suspensão. Testado via API real nas três, com PDF de verdade.
+
+**Bug real encontrado e corrigido nessa rodada**: o middleware de upload
+existente só aceitava imagem (foi construído originalmente só para foto de
+colaborador). Ao reaproveitá-lo para os anexos de documento (PDF), toda
+tentativa de anexar um PDF era rejeitada com "Arquivo deve ser uma imagem".
+Corrigido criando um segundo middleware (`uploadDocumento`, em
+`src/middleware/upload.js`) que aceita PDF e imagem, usado em todas as
+rotas novas de anexo — sem alterar o middleware original de foto, que
+continua exigindo imagem (testado que ele ainda rejeita PDF corretamente).
+
+## 21. Multi-empresa (Codismolas, AutoMolas, Nordeste)
+
+O sistema passou de single-tenant (uma empresa implícita em tudo) para
+multi-tenant de verdade — cada empresa só acessa os próprios dados, e o
+usuário escolhe qual empresa antes de entrar. Retrofit grande, tocou quase
+todo o backend; documentando aqui o que mudou e como validei cada parte.
+
+### Modelo de dados
+- Tabela `empresas` (substitui o antigo `empresa_config`, que era uma linha
+  única implícita). `empresaId` foi adicionado direto em `colaboradores`,
+  `usuarios`, `feriados`, `nr1_acoes`, `auditoria`, `notificacoes` e
+  `registros_ponto_afd`; todo o resto (batidas, abonos, férias, holerites,
+  EPI etc.) fica isolado indiretamente através do colaborador a quem pertence.
+- **Login deixou de ser único globalmente** — agora é único **por empresa**
+  (`admin` pode existir em Codismolas, AutoMolas e Nordeste ao mesmo tempo,
+  são contas completamente separadas). Mesma mudança em feriados (duas
+  empresas podem ter ambas um feriado em 25/12) e no NSR do AFD.
+- Migration de backfill testada com dados reais: rodei o backfill com
+  colaboradores/usuários já existentes de antes da mudança e confirmei que
+  nenhum ficou órfão — todos migraram para uma empresa automaticamente.
+
+### NSR do AFD agora é por empresa — não mais global
+Cada empresa tem seu próprio arquivo fiscal perante a Portaria 671/2021, e
+antes dessa mudança o contador do NSR era compartilhado entre todas as
+empresas do sistema (um erro de isolamento sério, já que dois arquivos AFD
+de empresas diferentes não podem compartilhar numeração). Testado de
+verdade: bati ponto em um colaborador da Codismolas (NSR começou em 1),
+bati ponto em um colaborador da AutoMolas (NSR também começou em 1, de
+forma independente), e confirmei que o AFD exportado por cada empresa só
+contém as marcações dela.
+
+### Cadastro de empresa novo, direto da tela de login
+`POST /api/empresas` é pública (sem login — como você entraria numa empresa
+que ainda não existe?) e cria a empresa **e** o primeiro usuário admin dela
+num só passo. Testado pela interface de ponta a ponta: abri o modal "Cadastrar
+nova empresa" na tela de login, criei uma empresa nova, confirmei que ela
+apareceu no seletor automaticamente, e fiz login nela na sequência.
+
+### O que foi testado (não só implementado)
+- **Vazamento cruzado**: cadastrei colaborador na Codismolas, confirmei que
+  a AutoMolas recebe `404` ao tentar ver, editar, desligar ou lançar ponto
+  para ele — testado em `colaboradores`, `batidas`, `abonos`, `ausências`,
+  `usuários`, `auditoria`, `EPI`, `NR-1` e `holerites`.
+- **Painel ao vivo e monitor de atraso**: o painel de uma empresa só mostra
+  os próprios colaboradores; o monitor de atraso (cron) agora itera as 3
+  empresas de forma independente, testado confirmando notificação gerada
+  para cada uma separadamente.
+- **Frontend**: seletor de empresa carregando as 3 do banco, login isolado
+  (testei duas janelas simultâneas, uma logada em cada empresa, confirmando
+  que a lista de colaboradores de uma não aparece na outra), e o app mobile
+  com o mesmo fluxo.
+
+### Dois bugs de constraint SQLite encontrados e corrigidos no processo
+`changeColumn` do Sequelize no SQLite reconstrói a tabela inteira (não tem
+`ALTER COLUMN` de verdade) — isso quebra qualquer foreign key que aponte
+para a tabela alterada. Descobri isso tentando tornar `empresaId`
+obrigatório em `colaboradores` (que tem mais de 10 tabelas dependentes) —
+resolvido deixando a obrigatoriedade só na camada de aplicação. Já em
+`usuarios` e `feriados` (que não têm nada apontando pra dentro delas),
+`changeColumn` foi seguro de usar para trocar a unicidade global por
+unicidade-por-empresa — validei isso tentando criar login/feriado
+duplicado na mesma empresa (bloqueado) e em empresas diferentes (permitido).
+
+### Seed atualizado
+`node src/seed.js` agora cria as 3 empresas (Codismolas, AutoMolas,
+Nordeste), cada uma com os 5 perfis de demonstração de sempre — 15 usuários
+de teste no total, todos com o mesmo conjunto de logins (`admin`,
+`paulo.mendes`, `fernanda.lima`, `ricardo.alves`, `maria.silva`), mas
+completamente isolados por empresa.
+
+## 22. Administrador do Sistema (super_admin)
+
+Pedido: só um administrador (não qualquer um dos admins de cada empresa)
+deveria poder cadastrar empresa nova, e esse administrador deveria conseguir
+entrar em qualquer empresa. Implementar isso *sem* quebrar o isolamento que
+tinha acabado de ser construído (o admin da Codismolas continuar sem ver
+nada da AutoMolas) exigia um perfil à parte — não dava pra simplesmente
+"turbinar" o perfil `admin` comum, porque ele existe em cada empresa
+separadamente.
+
+### Como funciona
+- Novo perfil `super_admin` — não pertence a nenhuma empresa (`empresaId`
+  fica `null`). Só existe um, criado pelo `seed.js` (**login `admin` / senha
+  `super123`** — sim, é o mesmo login "admin" que existe em cada empresa,
+  mas é uma conta completamente à parte: o que diferencia é a senha e o
+  fato de não selecionar empresa nenhuma no login), e não pode ser
+  concedido por um admin comum através da tela de Usuários (fica de fora da
+  lista de perfis atribuíveis).
+- Na tela de login, um link **"Sou administrador do sistema"** esconde o
+  seletor de empresa (o super_admin não escolhe uma pra logar — ele não
+  pertence a nenhuma). Login sem `empresaId` no corpo da requisição só
+  autentica esse perfil.
+- Depois de logado, o super_admin só vê duas abas: **Empresas** (cadastrar
+  empresa nova + lista de todas com botão "Entrar →") e **Minha Conta**.
+  Nenhuma ferramenta operacional (colaboradores, ponto, relatórios...)
+  aparece nesse contexto — ele não tem uma empresa selecionada ainda.
+- **Entrar numa empresa**: `POST /api/auth/entrar-empresa` — o super_admin
+  não precisa saber a senha do admin local; o backend emite um token novo
+  já "como admin" daquela empresa. Esse token tem exatamente o formato de
+  um login normal, então **toda rota existente continua funcionando sem
+  nenhuma alteração** — o super_admin passa a operar a empresa através do
+  mesmíssimo código que qualquer admin comum usa.
+- Um botão **"← voltar"** no rótulo da empresa (sidebar) retorna pra tela de
+  Administração do Sistema sem precisar logar de novo — o token original do
+  super_admin fica guardado em memória (nunca salvo em disco) enquanto ele
+  estiver "dentro" de uma empresa.
+
+### Testado de ponta a ponta (8 verificações pela interface real)
+Ativei o modo super_admin, logei sem empresa, confirmei que só as abas
+Empresas/Conta aparecem, cadastrei uma empresa nova pela tela, entrei na
+Codismolas sem saber a senha do admin dela, confirmei que os 5 colaboradores
+certos apareceram (prova de que o isolamento continua intacto mesmo
+entrando via super_admin), voltei pra Administração do Sistema sem logar
+de novo, e confirmei que um admin comum continua sem ver a aba Empresas.
+
+**Um "bug" que investiguei durante os testes e não era bug**: a última
+verificação (admin comum não vê a aba Empresas) falhou na primeira
+tentativa — mas era o próprio script de teste que tinha deixado o modo
+"super administrador" ligado da etapa anterior, então o login estava sendo
+tentado do jeito errado. Corrigi o teste, não o produto, e confirmei de novo.
+
+## 23. Próximos passos sugeridos
 
 - Trocar `sequelize.sync()` por migrations antes de ir para produção.
 - Adicionar testes automatizados (Jest + Supertest) para as regras de cálculo.

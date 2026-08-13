@@ -1,9 +1,10 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Colaborador, Ferias, Atestado, Ocorrencia } = require('../models');
+const { Colaborador, Ferias, Atestado, Ocorrencia, ColaboradorDesligamento, EpiSolicitacao } = require('../models');
 const { calcularMes } = require('../services/calculo');
 const { autenticar, permitir } = require('../middleware/auth');
 const { gerarXlsx, gerarPdf } = require('../services/exportacao');
+const { idsColaboradoresDaEmpresa } = require('../utils/empresa');
 
 const router = express.Router();
 router.use(autenticar);
@@ -21,7 +22,8 @@ async function linhasFaltaAtraso(req) {
   if (!mes) return { erro: 'Informe mes (YYYY-MM)' };
   const [ano, mesNum] = mes.split('-').map(Number);
 
-  const where = req.query.colaboradorId ? { id: req.query.colaboradorId } : {};
+  const where = { empresaId: req.usuario.empresaId };
+  if (req.query.colaboradorId) where.id = req.query.colaboradorId;
   const colaboradores = await Colaborador.findAll({ where });
 
   const linhas = [];
@@ -46,8 +48,12 @@ async function linhasFaltaAtraso(req) {
 }
 
 async function linhasFerias(req) {
-  const where = {};
-  if (req.query.colaboradorId) where.colaboradorId = req.query.colaboradorId;
+  const idsEmpresa = await idsColaboradoresDaEmpresa(req.usuario.empresaId);
+  const where = { colaboradorId: { [Op.in]: idsEmpresa } };
+  if (req.query.colaboradorId) {
+    if (!idsEmpresa.includes(req.query.colaboradorId)) return { linhas: [] };
+    where.colaboradorId = req.query.colaboradorId;
+  }
   if (req.query.status) where.status = req.query.status;
   const registros = await Ferias.findAll({
     where,
@@ -69,8 +75,12 @@ async function linhasFerias(req) {
 }
 
 async function linhasOcorrencias(req) {
-  const where = {};
-  if (req.query.colaboradorId) where.colaboradorId = req.query.colaboradorId;
+  const idsEmpresa = await idsColaboradoresDaEmpresa(req.usuario.empresaId);
+  const where = { colaboradorId: { [Op.in]: idsEmpresa } };
+  if (req.query.colaboradorId) {
+    if (!idsEmpresa.includes(req.query.colaboradorId)) return { linhas: [] };
+    where.colaboradorId = req.query.colaboradorId;
+  }
   if (req.query.tipo) where.tipo = req.query.tipo;
   const registros = await Ocorrencia.findAll({
     where,
@@ -91,8 +101,12 @@ async function linhasOcorrencias(req) {
 }
 
 async function linhasAtestados(req) {
-  const where = {};
-  if (req.query.colaboradorId) where.colaboradorId = req.query.colaboradorId;
+  const idsEmpresa = await idsColaboradoresDaEmpresa(req.usuario.empresaId);
+  const where = { colaboradorId: { [Op.in]: idsEmpresa } };
+  if (req.query.colaboradorId) {
+    if (!idsEmpresa.includes(req.query.colaboradorId)) return { linhas: [] };
+    where.colaboradorId = req.query.colaboradorId;
+  }
   const registros = await Atestado.findAll({
     where,
     include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
@@ -114,9 +128,77 @@ async function linhasAtestados(req) {
   return { linhas };
 }
 
+async function linhasDesligamentos(req) {
+  const idsEmpresa = await idsColaboradoresDaEmpresa(req.usuario.empresaId);
+  const where = { colaboradorId: { [Op.in]: idsEmpresa } };
+  if (req.query.colaboradorId) {
+    if (!idsEmpresa.includes(req.query.colaboradorId)) return { linhas: [] };
+    where.colaboradorId = req.query.colaboradorId;
+  }
+  if (req.query.dataInicio || req.query.dataFim) {
+    where.dataDesligamento = {};
+    if (req.query.dataInicio) where.dataDesligamento[Op.gte] = req.query.dataInicio;
+    if (req.query.dataFim) where.dataDesligamento[Op.lte] = req.query.dataFim;
+  }
+  const registros = await ColaboradorDesligamento.findAll({
+    where,
+    include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula', 'cargo'] }],
+    order: [['dataDesligamento', 'DESC']],
+  });
+  const rotuloTipo = {
+    pedido_demissao: 'Pedido de demissão',
+    dispensa_sem_justa_causa: 'Dispensa sem justa causa',
+    dispensa_com_justa_causa: 'Dispensa com justa causa',
+    termino_contrato: 'Término de contrato',
+    outro: 'Outro',
+  };
+  const linhas = registros.map((r) => {
+    const p = r.get({ plain: true });
+    return {
+      colaborador: p.Colaborador ? p.Colaborador.nome : '—',
+      matricula: p.Colaborador ? p.Colaborador.matricula : '—',
+      cargo: p.Colaborador ? p.Colaborador.cargo : '—',
+      dataAdmissaoDoCiclo: p.dataAdmissaoDoCiclo || '—',
+      dataDesligamento: p.dataDesligamento,
+      tipo: rotuloTipo[p.tipo] || p.tipo,
+      motivo: p.motivo || '—',
+      temAnexo: p.anexoPath ? 'sim' : 'não',
+    };
+  });
+  return { linhas };
+}
+
+async function linhasEpi(req) {
+  const idsEmpresa = await idsColaboradoresDaEmpresa(req.usuario.empresaId);
+  const where = { colaboradorId: { [Op.in]: idsEmpresa } };
+  if (req.query.colaboradorId) {
+    if (!idsEmpresa.includes(req.query.colaboradorId)) return { linhas: [] };
+    where.colaboradorId = req.query.colaboradorId;
+  }
+  if (req.query.status) where.status = req.query.status;
+  const registros = await EpiSolicitacao.findAll({
+    where,
+    include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
+    order: [['dataSolicitacao', 'DESC']],
+  });
+  const linhas = registros.map((r) => {
+    const p = r.get({ plain: true });
+    return {
+      colaborador: p.Colaborador ? p.Colaborador.nome : '—',
+      matricula: p.Colaborador ? p.Colaborador.matricula : '—',
+      item: p.item,
+      quantidade: p.quantidade,
+      dataSolicitacao: p.dataSolicitacao,
+      dataEntrega: p.dataEntrega || '—',
+      status: p.status,
+      temAnexo: p.anexoPath ? 'sim' : 'não',
+    };
+  });
+  return { linhas };
+}
+
 // Configuração de colunas por tipo de relatório, usada na exportação.
-const RELATORIOS = {
-  'falta-atraso': {
+const RELATORIOS = {  'falta-atraso': {
     titulo: 'Relatório de Falta e Atraso',
     obterLinhas: linhasFaltaAtraso,
     colunas: [
@@ -163,6 +245,34 @@ const RELATORIOS = {
       { chave: 'medico', rotulo: 'Médico', largura: 20 },
     ],
   },
+  desligamentos: {
+    titulo: 'Relatório de Desligamentos',
+    obterLinhas: linhasDesligamentos,
+    colunas: [
+      { chave: 'colaborador', rotulo: 'Colaborador', largura: 26 },
+      { chave: 'matricula', rotulo: 'Matrícula', largura: 12 },
+      { chave: 'cargo', rotulo: 'Cargo', largura: 20 },
+      { chave: 'dataAdmissaoDoCiclo', rotulo: 'Admissão', largura: 12 },
+      { chave: 'dataDesligamento', rotulo: 'Desligamento', largura: 14 },
+      { chave: 'tipo', rotulo: 'Tipo', largura: 22 },
+      { chave: 'motivo', rotulo: 'Motivo', largura: 34 },
+      { chave: 'temAnexo', rotulo: 'Anexo', largura: 8 },
+    ],
+  },
+  epi: {
+    titulo: 'Relatório de Solicitações de EPI',
+    obterLinhas: linhasEpi,
+    colunas: [
+      { chave: 'colaborador', rotulo: 'Colaborador', largura: 26 },
+      { chave: 'matricula', rotulo: 'Matrícula', largura: 12 },
+      { chave: 'item', rotulo: 'Item', largura: 22 },
+      { chave: 'quantidade', rotulo: 'Qtd.', largura: 8 },
+      { chave: 'dataSolicitacao', rotulo: 'Solicitado em', largura: 14 },
+      { chave: 'dataEntrega', rotulo: 'Entregue em', largura: 14 },
+      { chave: 'status', rotulo: 'Status', largura: 14 },
+      { chave: 'temAnexo', rotulo: 'Anexo', largura: 8 },
+    ],
+  },
 };
 
 // ---- Rotas JSON (usadas pela tela) ----
@@ -185,6 +295,16 @@ router.get('/ocorrencias', async (req, res) => {
 
 router.get('/atestados', async (req, res) => {
   const r = await linhasAtestados(req);
+  res.json(r.linhas);
+});
+
+router.get('/desligamentos', async (req, res) => {
+  const r = await linhasDesligamentos(req);
+  res.json(r.linhas);
+});
+
+router.get('/epi', async (req, res) => {
+  const r = await linhasEpi(req);
   res.json(r.linhas);
 });
 

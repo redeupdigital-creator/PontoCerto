@@ -13,7 +13,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#1F3A54; --navy-dark:#152A3D; --gold:#B8862E; --gold-light:#E8D9B8;
+    --navy:#1F3A54; --navy-dark:#152A3D; --navy-deep:#0A1730; --navy-black:#080D1A;
+    --gold:#B8862E; --gold-light:#E8D9B8; --cyan:#22D3EE; --purple:#8B5CF6; --teal:#2DD4BF;
     --bg:#F4F5F7; --card:#FFFFFF; --line:#E2E5E9; --text:#1F2937; --muted:#6B7480;
     --green:#166534; --green-bg:#E7F3EA; --amber:#8A5A0A; --amber-bg:#FBF0DC; --red:#B91C1C; --red-bg:#FBE9E9;
     --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -31,56 +32,70 @@
 
   /* ---------- Login ---------- */
   #login-screen{
-    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
-    background:linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 100%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle, rgba(255,255,255,.05) 1px, transparent 1px) 0 0/20px 20px,
+      linear-gradient(160deg, var(--navy-dark) 0%, var(--navy-deep) 60%, var(--navy-black) 100%);
   }
-  .login-box{background:#fff; border-radius:16px; padding:32px 26px; width:100%; max-width:360px; box-shadow:0 20px 50px rgba(0,0,0,.3);}
-  .login-box .brand{font-size:20px; color:var(--navy-dark); text-align:center;}
-  .login-box .brand small{display:block; font-family:'IBM Plex Sans'; font-weight:400; font-size:12px; color:var(--muted); margin-top:4px;}
-  .login-box label{display:block; font-size:12px; color:var(--muted); margin:16px 0 5px; font-weight:500;}
-  .login-box input{width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:10px; font-size:16px;}
-  .login-box button{width:100%; margin-top:22px; background:var(--gold); color:#fff; border:none; padding:14px; border-radius:10px; font-weight:700; font-size:16px;}
-  .login-err{background:var(--red-bg); color:var(--red); font-size:13px; padding:10px 12px; border-radius:8px; margin-top:14px;}
+  .login-box{background:#12151F; border:1px solid rgba(255,255,255,.08); border-radius:18px; padding:32px 26px; width:100%; max-width:360px; box-shadow:0 20px 50px rgba(0,0,0,.4); position:relative; z-index:1;}
+  .login-box .brand{font-size:20px; color:#fff; text-align:center;}
+  .login-box .brand small{display:block; font-family:'IBM Plex Mono'; font-weight:500; font-size:10.5px; color:#93A3BE; letter-spacing:.6px; margin-top:5px;}
+  .login-box label{display:block; font-size:12px; color:#93A3BE; margin:16px 0 5px; font-weight:500;}
+  .login-box input{width:100%; padding:13px 14px; border:1.5px solid rgba(255,255,255,.12); border-radius:10px; font-size:16px; background:rgba(255,255,255,.04); color:#fff;}
+  .login-box input:focus{outline:none; border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,.15);}
+  .login-box button{
+    width:100%; margin-top:22px; border:none; padding:14px; border-radius:10px; font-weight:700; font-size:16px; color:#fff;
+    background:linear-gradient(90deg, var(--cyan) 0%, var(--purple) 100%); box-shadow:0 8px 20px rgba(139,92,246,.3);
+  }
+  .login-err{background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.3); color:#F87171; font-size:13px; padding:10px 12px; border-radius:8px; margin-top:14px;}
   details.api-toggle{margin-top:16px; text-align:center;}
-  details.api-toggle summary{font-size:11.5px; color:var(--muted); cursor:pointer;}
-  details.api-toggle input{margin-top:8px; font-size:11.5px; color:var(--muted);}
+  details.api-toggle summary{font-size:11.5px; color:#93A3BE; cursor:pointer;}
+  details.api-toggle input{margin-top:8px; font-size:11.5px; color:#93A3BE;}
 
   /* ---------- App shell ---------- */
   #app{display:none; min-height:100vh; flex-direction:column;}
   #app.visible{display:flex;}
   header.topbar{
-    background:var(--navy); color:#fff; padding:calc(var(--safe-top) + 14px) 18px 14px;
+    background:linear-gradient(120deg, var(--navy-dark) 0%, var(--navy-deep) 100%); color:#fff;
+    padding:calc(var(--safe-top) + 14px) 18px 14px;
     display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10;
+    box-shadow:0 2px 12px rgba(0,0,0,.15);
   }
   header.topbar .brand{font-size:16px; font-weight:700;}
-  header.topbar .who{font-size:11px; color:var(--gold-light);}
-  header.topbar button{background:none; border:none; color:#C9D2DC; font-size:13px;}
+  header.topbar .who{font-size:10.5px; color:#93A3BE; font-family:'IBM Plex Mono';}
+  header.topbar button{background:none; border:none; color:var(--teal); font-size:13px; font-weight:600;}
 
   main{flex:1; padding:18px 16px calc(90px + var(--safe-bottom));}
 
   nav.tabbar{
     position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line);
-    display:flex; padding-bottom:var(--safe-bottom); z-index:10;
+    display:flex; padding-bottom:var(--safe-bottom); z-index:10; box-shadow:0 -2px 12px rgba(0,0,0,.05);
   }
   nav.tabbar button{
     flex:1; background:none; border:none; padding:10px 0 8px; display:flex; flex-direction:column;
-    align-items:center; gap:3px; color:var(--muted); font-size:11px; font-weight:500;
+    align-items:center; gap:3px; color:var(--muted); font-size:11px; font-weight:500; position:relative;
   }
-  nav.tabbar button .ic{font-size:20px;}
-  nav.tabbar button.active{color:var(--navy);}
-  nav.tabbar button.active .ic{color:var(--gold);}
+  nav.tabbar button .ic{font-size:20px; transition:transform .15s;}
+  nav.tabbar button.active{color:var(--navy-dark);}
+  nav.tabbar button.active .ic{transform:translateY(-1px);}
+  nav.tabbar button.active::before{
+    content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:22px; height:3px;
+    border-radius:0 0 4px 4px; background:linear-gradient(90deg, var(--cyan), var(--purple));
+  }
 
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px; box-shadow:0 1px 3px rgba(16,24,40,.04);}
   .page-title{margin-bottom:16px;}
   .page-title h1{font-size:19px; margin:0; color:var(--navy-dark);}
   .page-title p{margin:2px 0 0; color:var(--muted); font-size:12.5px;}
 
   label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:500;}
-  input,select,textarea{width:100%; padding:12px 13px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text); margin-bottom:12px;}
+  input,select,textarea{width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text); margin-bottom:12px; transition:border-color .15s, box-shadow .15s;}
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,.13);}
 
-  button.btn{background:var(--navy); color:#fff; border:none; padding:13px 18px; border-radius:10px; font-size:14.5px; font-weight:700; width:100%;}
-  button.btn.gold{background:var(--gold);}
-  button.btn.ghost{background:#fff; border:1px solid var(--line); color:var(--text);}
+  button.btn{background:var(--navy); color:#fff; border:none; padding:13px 18px; border-radius:10px; font-size:14.5px; font-weight:700; width:100%; transition:transform .1s, box-shadow .15s;}
+  button.btn.gold{background:linear-gradient(90deg, var(--cyan) 0%, var(--purple) 100%); box-shadow:0 6px 16px rgba(139,92,246,.28);}
+  button.btn.gold:active{transform:scale(.98);}
+  button.btn.ghost{background:#fff; border:1.5px solid var(--line); color:var(--text);}
   button.btn:disabled{opacity:.5;}
 
   .badge{display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700;}
@@ -110,12 +125,13 @@
   .slot.feito{background:var(--green-bg); border-color:#BFE0C8;}
   .slot.feito .hora{color:var(--green);}
   .slot.pendente .hora{color:var(--line); font-size:16px;}
-  .slot.proximo{border-color:var(--gold); box-shadow:0 0 0 2px rgba(184,134,46,0.15);}
+  .slot.proximo{border-color:var(--cyan); box-shadow:0 0 0 2px rgba(34,211,238,.15);}
 
   .btn-bater{
-    width:100%; padding:22px; border:none; border-radius:18px; background:var(--gold); color:#fff;
+    width:100%; padding:22px; border:none; border-radius:18px; color:#fff;
+    background:linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
     font-size:18px; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:6px;
-    box-shadow:0 8px 20px rgba(184,134,46,0.35);
+    box-shadow:0 10px 24px rgba(139,92,246,.35); transition:transform .1s;
   }
   .btn-bater:active{transform:scale(0.98);}
   .btn-bater:disabled{opacity:.6; box-shadow:none;}
@@ -156,6 +172,8 @@
 <div id="login-screen">
   <div class="login-box">
     <div class="brand">PontoCerto<small>bater ponto pelo celular</small></div>
+    <label>Empresa</label>
+    <select id="login-empresa"><option value="">Carregando...</option></select>
     <label>Usuário</label>
     <input id="login-user" autocomplete="username" placeholder="seu.usuario">
     <label>Senha</label>
@@ -192,6 +210,7 @@ let API_BASE = '/api';
 let TOKEN = null;
 let PERFIL = null;
 let MEU_ID = null;
+let EMPRESA_NOME = null;
 
 async function apiFetch(path, options = {}) {
   const headers = options.headers ? { ...options.headers } : {};
@@ -210,20 +229,38 @@ async function apiFetch(path, options = {}) {
 document.getElementById('btn-login').addEventListener('click', doLogin);
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
+async function carregarEmpresasNoLogin(){
+  const select = document.getElementById('login-empresa');
+  const apiBase = document.getElementById('login-api').value.trim() || '/api';
+  try{
+    const res = await fetch(`${apiBase}/empresas`);
+    const empresas = await res.json();
+    select.innerHTML = empresas.length
+      ? empresas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')
+      : `<option value="">Nenhuma empresa cadastrada</option>`;
+  }catch(err){
+    select.innerHTML = `<option value="">Não foi possível carregar</option>`;
+  }
+}
+carregarEmpresasNoLogin();
+
 async function doLogin(){
+  const empresaId = document.getElementById('login-empresa').value;
   const login = document.getElementById('login-user').value.trim();
   const senha = document.getElementById('login-pass').value;
   API_BASE = document.getElementById('login-api').value.trim() || '/api';
   const btn = document.getElementById('btn-login');
   const msgEl = document.getElementById('login-msg');
   msgEl.innerHTML = '';
+  if(!empresaId){ msgEl.innerHTML = `<div class="login-err">Selecione a empresa.</div>`; return; }
   btn.disabled = true; btn.textContent = 'Entrando...';
   try{
-    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ login, senha }) });
+    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ login, senha, empresaId }) });
     TOKEN = data.token; PERFIL = data.perfil; MEU_ID = data.colaboradorId || null;
+    EMPRESA_NOME = data.empresaNome || '';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    document.getElementById('who-label').textContent = `${login} · ${PERFIL}`;
+    document.getElementById('who-label').textContent = `${login} · ${PERFIL} · ${EMPRESA_NOME}`;
     if (!MEU_ID) {
       msgEl.innerHTML = ''; // segue mesmo assim, mas a tela de ponto vai avisar
     }
@@ -237,7 +274,7 @@ async function doLogin(){
 }
 
 document.getElementById('btn-logout').addEventListener('click', ()=>{
-  TOKEN = null; PERFIL = null; MEU_ID = null; adminView = null;
+  TOKEN = null; PERFIL = null; MEU_ID = null; adminView = null; EMPRESA_NOME = null;
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 });
@@ -589,6 +626,7 @@ async function renderAdminColaboradores(){
   main.innerHTML = botaoVoltar('Colaboradores') + (podeCadastrar ? `
     <div class="card">
       <label>Nome</label><input id="ac-nome">
+      <label>CPF *</label><input id="ac-cpf" placeholder="000.000.000-00">
       <label>Cargo</label><input id="ac-cargo">
       <label>E-mail</label><input id="ac-email">
       <div id="ac-msg"></div>
@@ -597,9 +635,12 @@ async function renderAdminColaboradores(){
 
   if(podeCadastrar) document.getElementById('btn-ac-add').addEventListener('click', async ()=>{
     const nome = document.getElementById('ac-nome').value.trim();
+    const cpf = document.getElementById('ac-cpf').value.trim();
     if(!nome){ showMsg('ac-msg','Informe o nome.','err'); return; }
+    if(!cpf){ showMsg('ac-msg','CPF é obrigatório.','err'); return; }
     const fd = new FormData();
     fd.append('nome', nome);
+    fd.append('cpf', cpf);
     fd.append('cargo', document.getElementById('ac-cargo').value.trim());
     fd.append('email', document.getElementById('ac-email').value.trim());
     fd.append('jornada', JSON.stringify({dom:0,seg:8,ter:8,qua:8,qui:8,sex:8,sab:0}));

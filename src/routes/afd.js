@@ -10,7 +10,7 @@ router.use(permitir('admin'));
 // GET /api/afd/exportar?dataInicio=YYYY-MM-DD&dataFim=YYYY-MM-DD
 router.get('/exportar', async (req, res) => {
   try {
-    const { conteudo, nomeArquivo, avisos } = await gerarAfd({ dataInicio: req.query.dataInicio, dataFim: req.query.dataFim });
+    const { conteudo, nomeArquivo, avisos } = await gerarAfd({ empresaId: req.usuario.empresaId, dataInicio: req.query.dataInicio, dataFim: req.query.dataFim });
     if (req.query.formato === 'json') {
       return res.json({ nomeArquivo, avisos, conteudo });
     }
@@ -28,7 +28,7 @@ router.get('/exportar', async (req, res) => {
 // GET /api/afd/integridade — confere se a cadeia de hash das marcações
 // brutas está intacta (nenhum registro foi alterado fora da aplicação).
 router.get('/integridade', async (req, res) => {
-  const resultado = await verificarIntegridadeCadeia();
+  const resultado = await verificarIntegridadeCadeia(req.usuario.empresaId);
   res.json(resultado);
 });
 

@@ -55,4 +55,4 @@ function usandoSupabase() {
   return !!getSupabase();
 }
 
-module.exports = { salvarFoto, usandoSupabase };
+module.exports = { salvarFoto, usandoSupabase, salvarArquivo: salvarFoto };

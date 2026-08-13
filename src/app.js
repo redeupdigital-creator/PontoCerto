@@ -14,13 +14,16 @@ const relatoriosRoutes = require('./routes/relatorios');
 const cartaoPontoRoutes = require('./routes/cartaoPonto');
 const notificacoesRoutes = require('./routes/notificacoes');
 const usuariosRoutes = require('./routes/usuarios');
-const empresaRoutes = require('./routes/empresa');
+const empresasRoutes = require('./routes/empresas');
 const auditoriaRoutes = require('./routes/auditoria');
 const afdRoutes = require('./routes/afd');
 const dashboardRoutes = require('./routes/dashboard');
+const epiRoutes = require('./routes/epi');
+const nr1Routes = require('./routes/nr1');
+const folhaPagamentoRoutes = require('./routes/folhaPagamento');
 
 const app = express();
-app.use(cors());
+app.use(cors({ exposedHeaders: ['X-Total-Count', 'X-Pagina', 'X-Total-Paginas'] }));
 if (!process.env.VERCEL) app.use(morgan('dev')); // logs verbosos só fora de serverless
 app.use(express.json());
 
@@ -48,10 +51,13 @@ app.use('/api/relatorios', relatoriosRoutes);
 app.use('/api/cartao-ponto', cartaoPontoRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/empresa', empresaRoutes);
+app.use('/api/empresas', empresasRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
 app.use('/api/afd', afdRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/epi', epiRoutes);
+app.use('/api/nr1', nr1Routes);
+app.use('/api/folha-pagamento', folhaPagamentoRoutes);
 
 // Tratamento de erro genérico
 app.use((err, req, res, next) => {

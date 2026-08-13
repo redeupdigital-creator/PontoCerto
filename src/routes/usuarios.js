@@ -38,6 +38,7 @@ router.use(permitir('admin'));
 // Listar usuários — nunca retorna o hash da senha.
 router.get('/', async (req, res) => {
   const usuarios = await Usuario.findAll({
+    where: { empresaId: req.usuario.empresaId },
     attributes: { exclude: ['senhaHash'] },
     include: [{ model: Colaborador, attributes: ['id', 'nome', 'matricula'] }],
     order: [['login', 'ASC']],
@@ -57,11 +58,11 @@ router.post('/', async (req, res) => {
   if (!perfilValido(perfil)) {
     return res.status(400).json({ erro: `Perfil inválido. Use um de: ${PERFIS.join(', ')}` });
   }
-  const existente = await Usuario.findOne({ where: { login } });
+  const existente = await Usuario.findOne({ where: { login, empresaId: req.usuario.empresaId } });
   if (existente) return res.status(409).json({ erro: 'Já existe um usuário com este login' });
 
   const senhaHash = await bcrypt.hash(senha, 10);
-  const usuario = await Usuario.create({ login, senhaHash, perfil, colaboradorId: colaboradorId || null });
+  const usuario = await Usuario.create({ login, senhaHash, perfil, colaboradorId: colaboradorId || null, empresaId: req.usuario.empresaId });
   await registrar({ usuario: req.usuario, acao: 'create', entidade: 'Usuario', entidadeId: usuario.id, detalhes: { login, perfil } });
   const { senhaHash: _omit, ...semSenha } = usuario.get({ plain: true });
   res.status(201).json(semSenha);
@@ -69,7 +70,7 @@ router.post('/', async (req, res) => {
 
 // Atualizar perfil/vínculo de um usuário (não altera senha aqui — ver rotas dedicadas)
 router.put('/:id', async (req, res) => {
-  const usuario = await Usuario.findByPk(req.params.id);
+  const usuario = await Usuario.findOne({ where: { id: req.params.id, empresaId: req.usuario.empresaId } });
   if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
   const { perfil, colaboradorId } = req.body;
   if (perfil && !perfilValido(perfil)) {
@@ -87,7 +88,7 @@ router.put('/:id', async (req, res) => {
 
 // Remover usuário
 router.delete('/:id', async (req, res) => {
-  const usuario = await Usuario.findByPk(req.params.id);
+  const usuario = await Usuario.findOne({ where: { id: req.params.id, empresaId: req.usuario.empresaId } });
   if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
   await registrar({ usuario: req.usuario, acao: 'delete', entidade: 'Usuario', entidadeId: usuario.id, detalhes: { login: usuario.login, perfil: usuario.perfil } });
   await usuario.destroy();
@@ -100,7 +101,7 @@ router.patch('/:id/senha', async (req, res) => {
   if (!novaSenha || novaSenha.length < 6) {
     return res.status(400).json({ erro: 'A nova senha deve ter ao menos 6 caracteres' });
   }
-  const usuario = await Usuario.findByPk(req.params.id);
+  const usuario = await Usuario.findOne({ where: { id: req.params.id, empresaId: req.usuario.empresaId } });
   if (!usuario) return res.status(404).json({ erro: 'Usuário não encontrado' });
   usuario.senhaHash = await bcrypt.hash(novaSenha, 10);
   await usuario.save();

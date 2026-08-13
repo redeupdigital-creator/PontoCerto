@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { RegistroPontoAfd, Colaborador, EmpresaConfig, Auditoria } = require('../models');
+const { RegistroPontoAfd, Colaborador, Empresa, Auditoria } = require('../models');
 
 /* ============================================================
    CRC-16/KERMIT (CCITT-TRUE) — exigido pela Portaria 671/2021 (Anexo V,
@@ -55,8 +55,8 @@ const ID_COLETOR = { app: '01', browser: '02', desktop: '03' };
    (isso seria fabricar uma marcação que não aconteceu; correções manuais
    ficam só na trilha de auditoria genérica, que é o mecanismo certo pra isso).
    ============================================================ */
-async function registrarMarcacaoBruta({ colaboradorId, dataHoraMarcacao, origem = 'app', online = true }) {
-  const ultimo = await RegistroPontoAfd.findOne({ order: [['nsr', 'DESC']] });
+async function registrarMarcacaoBruta({ empresaId, colaboradorId, dataHoraMarcacao, origem = 'app', online = true }) {
+  const ultimo = await RegistroPontoAfd.findOne({ where: { empresaId }, order: [['nsr', 'DESC']] });
   const proximoNsr = ultimo ? ultimo.nsr + 1 : 1;
   const hashAnterior = ultimo ? ultimo.hashAtual : '';
 
@@ -80,6 +80,7 @@ async function registrarMarcacaoBruta({ colaboradorId, dataHoraMarcacao, origem 
   const hashAtual = crypto.createHash('sha256').update(base, 'utf8').digest('hex');
 
   return RegistroPontoAfd.create({
+    empresaId,
     nsr: proximoNsr,
     colaboradorId,
     dataHoraMarcacao,
@@ -97,8 +98,8 @@ async function registrarMarcacaoBruta({ colaboradorId, dataHoraMarcacao, origem 
    registro no banco diretamente (fora da aplicação), a cadeia quebraria
    aqui, o que é exatamente o ponto de existir.
    ============================================================ */
-async function verificarIntegridadeCadeia() {
-  const registros = await RegistroPontoAfd.findAll({ order: [['nsr', 'ASC']] });
+async function verificarIntegridadeCadeia(empresaId) {
+  const registros = await RegistroPontoAfd.findAll({ where: { empresaId }, order: [['nsr', 'ASC']] });
   const colaboradoresCache = {};
   let hashEsperado = '';
   for (const r of registros) {
@@ -124,12 +125,12 @@ async function verificarIntegridadeCadeia() {
    Anexo V da Portaria 671/2021. Gerado como REP-P (Registrador Eletrônico
    de Ponto Via Programa), já que este é um sistema de software.
    ============================================================ */
-async function gerarAfd({ dataInicio, dataFim }) {
-  const empresa = (await EmpresaConfig.findOne()) || {};
+async function gerarAfd({ empresaId, dataInicio, dataFim }) {
+  const empresa = (await Empresa.findByPk(empresaId)) || {};
   const registros7 = await RegistroPontoAfd.findAll({
     where: dataInicio && dataFim
-      ? { dataHoraMarcacao: { [require('sequelize').Op.between]: [new Date(`${dataInicio}T00:00:00`), new Date(`${dataFim}T23:59:59`)] } }
-      : {},
+      ? { empresaId, dataHoraMarcacao: { [require('sequelize').Op.between]: [new Date(`${dataInicio}T00:00:00`), new Date(`${dataFim}T23:59:59`)] } }
+      : { empresaId },
     order: [['nsr', 'ASC']],
     include: [{ model: Colaborador, attributes: ['cpf', 'nome'] }],
   });
@@ -178,7 +179,7 @@ async function gerarAfd({ dataInicio, dataFim }) {
 
   // ---- Tipo 5: Inclusão/alteração de empregado — a partir da auditoria ----
   const eventosColaborador = await Auditoria.findAll({
-    where: { entidade: 'Colaborador', acao: ['create', 'update'] },
+    where: { empresaId, entidade: 'Colaborador', acao: ['create', 'update'] },
     order: [['createdAt', 'ASC']],
   });
   let nsrTipo5 = 1;

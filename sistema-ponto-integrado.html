@@ -8,7 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#1F3A54; --navy-dark:#152A3D; --gold:#B8862E; --gold-light:#E8D9B8;
+    --navy:#1F3A54; --navy-dark:#152A3D; --navy-deep:#0A1730; --navy-black:#080D1A;
+    --gold:#B8862E; --gold-light:#E8D9B8; --cyan:#22D3EE; --purple:#8B5CF6; --teal:#2DD4BF;
     --bg:#F4F5F7; --card:#FFFFFF; --line:#DDE1E6; --text:#1F2937; --muted:#6B7480;
     --green:#166534; --green-bg:#E7F3EA; --amber:#8A5A0A; --amber-bg:#FBF0DC;
     --red:#B91C1C; --red-bg:#FBE9E9;
@@ -124,64 +125,116 @@
   /* ---------- App shell ---------- */
   #app{display:none; min-height:100vh; flex-direction:row;}
   #app.visible{display:flex;}
-  nav.sidebar{width:230px; background:var(--navy); color:#fff; flex-shrink:0; display:flex; flex-direction:column; padding:20px 0;}
-  nav.sidebar .brand{padding:0 20px 20px; font-size:17px; font-weight:700; letter-spacing:.3px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:10px;}
-  nav.sidebar .brand small{display:block; font-family:'IBM Plex Sans'; font-weight:400; font-size:11px; color:var(--gold-light); margin-top:2px;}
-  nav.sidebar button{background:none; border:none; color:#C9D2DC; text-align:left; padding:11px 20px; font-size:13.5px; cursor:pointer; border-left:3px solid transparent; font-family:'IBM Plex Sans'; display:flex; align-items:center; gap:10px; width:100%;}
-  nav.sidebar button:hover{background:rgba(255,255,255,.06); color:#fff;}
-  nav.sidebar button.active{background:rgba(255,255,255,.09); color:#fff; border-left-color:var(--gold); font-weight:600;}
-  nav.sidebar .icon{width:16px; text-align:center; font-size:14px;}
-  nav.sidebar .userbox{margin-top:auto; padding:14px 20px 0; border-top:1px solid rgba(255,255,255,.12);}
-  nav.sidebar .userbox .who{font-size:12px; color:#C9D2DC;}
-  nav.sidebar .userbox button{padding:8px 0; color:var(--gold-light); font-size:12px;}
+  nav.sidebar{
+    width:236px; flex-shrink:0; display:flex; flex-direction:column; padding:20px 0; color:#fff;
+    position:relative; overflow-y:auto; overflow-x:hidden;
+    background:
+      radial-gradient(circle, rgba(255,255,255,.05) 1px, transparent 1px) 0 0/20px 20px,
+      linear-gradient(165deg, var(--navy-dark) 0%, var(--navy-deep) 55%, var(--navy-black) 100%);
+    box-shadow: 2px 0 24px rgba(0,0,0,.18);
+  }
+  nav.sidebar .brand{
+    padding:0 20px 18px; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,.1);
+    display:flex; align-items:center; gap:10px;
+  }
+  nav.sidebar .brand-icon{
+    width:32px; height:32px; flex-shrink:0; border:1.5px solid var(--teal); border-radius:9px;
+    display:flex; align-items:center; justify-content:center; color:var(--teal); font-size:15px; font-weight:700;
+  }
+  nav.sidebar .brand-text{font-size:16px; font-weight:700; letter-spacing:.3px; line-height:1.2;}
+  nav.sidebar .brand small{display:block; font-family:'IBM Plex Mono'; font-weight:500; font-size:9.5px; color:#93A3BE; letter-spacing:.6px; margin-top:2px;}
+  nav.sidebar button{
+    position:relative; background:none; border:none; color:#B7C2D6; text-align:left; padding:10.5px 20px 10.5px 17px;
+    font-size:13.5px; cursor:pointer; border-left:3px solid transparent; font-family:'IBM Plex Sans';
+    display:flex; align-items:center; gap:10px; width:100%; transition:background .15s, color .15s;
+  }
+  nav.sidebar button:hover{background:rgba(255,255,255,.05); color:#fff;}
+  nav.sidebar button.active{
+    background:linear-gradient(90deg, rgba(34,211,238,.14) 0%, rgba(139,92,246,.05) 100%);
+    color:#fff; border-left-color:var(--cyan); font-weight:600;
+  }
+  nav.sidebar .icon{width:18px; text-align:center; font-size:14px; flex-shrink:0;}
+  nav.sidebar .userbox{margin-top:auto; padding:14px 20px 0; border-top:1px solid rgba(255,255,255,.1);}
+  nav.sidebar .userbox .who{font-size:11.5px; color:#93A3BE; font-family:'IBM Plex Mono';}
+  nav.sidebar .userbox button{padding:8px 0; color:var(--teal); font-size:12px; border:none;}
 
   main{flex:1; padding:28px 34px; max-width:1180px;}
   .page-title{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px;}
   .page-title h1{font-size:21px; margin:0; color:var(--navy-dark);}
   .page-title p{margin:2px 0 0; color:var(--muted); font-size:13px;}
 
-  .card{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:20px; margin-bottom:20px;}
-  .card h3{margin:0 0 14px; font-size:14px; color:var(--navy-dark); text-transform:uppercase; letter-spacing:.4px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:20px; box-shadow:0 1px 2px rgba(16,24,40,.04); transition:box-shadow .15s;}
+  .card h3{margin:0 0 14px; font-size:13px; color:var(--navy-dark); text-transform:uppercase; letter-spacing:.6px; font-weight:700;}
 
   .grid{display:grid; gap:12px;}
   .grid.cols-2{grid-template-columns:1fr 1fr;}
   .grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
   .grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
   label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:500;}
-  input, select, textarea{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:5px; font-family:inherit; font-size:13.5px; background:#fff; color:var(--text);}
-  input:focus, select:focus, textarea:focus{outline:2px solid var(--gold); outline-offset:-1px; border-color:var(--gold);}
+  input, select, textarea{width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px; font-family:inherit; font-size:13.5px; background:#fff; color:var(--text); transition:border-color .15s, box-shadow .15s;}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,.15);}
   .field{margin-bottom:0;}
 
-  button.btn{background:var(--navy); color:#fff; border:none; padding:9px 16px; border-radius:5px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit;}
+  button.btn{background:var(--navy); color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:transform .1s, box-shadow .15s, background .15s;}
   button.btn:hover{background:var(--navy-dark);}
-  button.btn.gold{background:var(--gold);}
-  button.btn.gold:hover{background:#96701F;}
-  button.btn.ghost{background:none; border:1px solid var(--line); color:var(--text);}
-  button.btn.ghost:hover{background:#F0F1F3;}
-  button.btn.sm{padding:5px 10px; font-size:12px;}
+  button.btn.gold{
+    background:linear-gradient(90deg, var(--cyan) 0%, var(--purple) 100%); color:#fff;
+    box-shadow:0 4px 14px rgba(139,92,246,.28);
+  }
+  button.btn.gold:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(139,92,246,.36);}
+  button.btn.gold:active{transform:translateY(0);}
+  button.btn.ghost{background:none; border:1.5px solid var(--line); color:var(--text);}
+  button.btn.ghost:hover{background:#F0F1F3; border-color:#C7CDD6;}
+  button.btn.sm{padding:5px 10px; font-size:12px; border-radius:6px;}
   button.btn.danger{background:var(--red-bg); color:var(--red); border:1px solid #EFC5C5;}
-  button.btn:disabled{opacity:.55; cursor:not-allowed;}
+  button.btn:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow:none;}
 
   table{width:100%; border-collapse:collapse; font-size:13px;}
-  th{text-align:left; background:#F0F2F5; padding:8px 10px; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; color:var(--muted); border-bottom:1px solid var(--line);}
-  td{padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  th{text-align:left; background:#F7F8FA; padding:9px 10px; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:700; border-bottom:1px solid var(--line);}
+  td{padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tbody tr{transition:background .1s;}
+  tbody tr:hover{background:#FAFBFC;}
   tr.weekend td{background:#FAFAFB; color:var(--muted);}
   tr.holiday td{background:#FCF4E8;}
 
-  .badge{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600;}
+  .badge{display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.2px;}
   .badge.green{background:var(--green-bg); color:var(--green);}
   .badge.amber{background:var(--amber-bg); color:var(--amber);}
   .badge.red{background:var(--red-bg); color:var(--red);}
   .badge.gray{background:#EDEEF0; color:var(--muted);}
 
   .photo-box{width:96px; height:120px; border:2px solid var(--navy); border-radius:4px; overflow:hidden; background:#EDEEF0; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+  /* ---------- Stat cards (Painel ao Vivo) ---------- */
+  .stat-card{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px;
+    text-align:center; box-shadow:0 1px 2px rgba(16,24,40,.04); transition:transform .15s, box-shadow .15s;
+  }
+  .stat-card:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(16,24,40,.08);}
+  .stat-icon{
+    width:38px; height:38px; border-radius:11px; margin:0 auto 8px; font-size:17px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stat-num{font-size:25px; font-weight:700; color:var(--navy-dark); line-height:1.1;}
+  .stat-label{font-size:11px; color:var(--muted); margin-top:4px; font-weight:500;}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(8,13,26,.55); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-box{
+    background:#fff; border-radius:14px; padding:24px; width:100%; max-width:440px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3); max-height:90vh; overflow-y:auto;
+  }
+  .modal-box h3{margin:0 0 14px; color:var(--navy-dark); font-size:17px;}
   .photo-box img{width:100%; height:100%; object-fit:cover;}
   .photo-box .ph{font-size:10px; color:var(--muted); text-align:center; padding:6px;}
 
   .toolbar{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:16px;}
   .tabs-sub{display:flex; gap:6px; margin-bottom:16px; border-bottom:1px solid var(--line);}
   .tabs-sub button{background:none; border:none; padding:9px 14px; font-size:13px; cursor:pointer; color:var(--muted); border-bottom:2px solid transparent; font-family:inherit; font-weight:500;}
-  .tabs-sub button.active{color:var(--navy-dark); border-color:var(--gold); font-weight:600;}
+  .tabs-sub button.active{color:var(--navy-dark); border-color:var(--cyan); font-weight:600;}
 
   .empty{color:var(--muted); font-size:13px; padding:18px 0; text-align:center;}
   .loading{color:var(--muted); font-size:13px; padding:18px 0; text-align:center;}
@@ -288,28 +341,34 @@
       <h2>Bem-vindo de volta!</h2>
       <p class="login-card-sub">Entre para acessar o painel do PontoCerto.</p>
 
+      <label class="fl-label" id="label-login-empresa">Empresa</label>
+      <div class="fl-input-wrap" id="wrap-login-empresa">
+        <span class="fl-icon">🏢</span>
+        <select id="login-empresa"><option value="">Carregando empresas...</option></select>
+      </div>
+
       <label class="fl-label">Usuário</label>
       <div class="fl-input-wrap">
         <span class="fl-icon">👤</span>
-        <input id="login-user" value="admin" autocomplete="username" placeholder="seu.usuario">
+        <input id="login-user" autocomplete="username" placeholder="seu.usuario">
       </div>
 
       <label class="fl-label">Senha</label>
       <div class="fl-input-wrap">
         <span class="fl-icon">🔒</span>
-        <input id="login-pass" type="password" value="admin123" autocomplete="current-password" placeholder="Digite sua senha">
+        <input id="login-pass" type="password" autocomplete="current-password" placeholder="Digite sua senha">
         <button type="button" id="btn-toggle-senha" class="toggle-pass" aria-label="Mostrar senha">👁</button>
       </div>
 
       <div class="fl-row">
         <label class="fl-remember"><input type="checkbox" checked> Lembrar-me</label>
-        <a id="link-esqueci">Esqueci minha senha</a>
+        <a id="link-toggle-super-admin">Sou administrador do sistema</a>
       </div>
 
       <button id="btn-login" class="btn-entrar">🔒 Entrar</button>
       <div id="login-msg"></div>
 
-      <div class="fl-security">🛡️ Seus dados são protegidos com autenticação JWT e controle de acesso por perfil.</div>
+      <div class="fl-security">🛡️ Seus dados são protegidos com autenticação JWT e controle de acesso por perfil. Cada empresa só acessa os próprios dados.</div>
 
       <details class="api-toggle">
         <summary>Endereço da API (avançado)</summary>
@@ -319,21 +378,28 @@
     <div class="login-footer">© 2026 PontoCerto. Todos os direitos reservados.<br>Desenvolvido por Danilo Cruz</div>
   </div>
 </div>
+<div id="modal-empresa-wrap"></div>
 
 <div id="app">
   <nav class="sidebar">
-    <div class="brand">PontoCerto<small>Módulo de Controle de Ponto</small></div>
+    <div class="brand"><div class="brand-icon">✓</div><div class="brand-text">PontoCerto<small>MÓDULO DE CONTROLE</small></div></div>
+    <div id="empresa-label" style="padding:0 20px 14px; margin-top:-6px; font-size:12px; font-weight:600; color:#22D3EE; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:8px; padding-bottom:14px;"></div>
     <button data-tab="painel" class="active"><span class="icon">🟢</span> Painel ao Vivo</button>
-    <button data-tab="colaboradores"><span class="icon">01</span> Colaboradores</button>
-    <button data-tab="ponto"><span class="icon">02</span> Registro de Ponto</button>
-    <button data-tab="abonos"><span class="icon">03</span> Abono de Batidas</button>
-    <button data-tab="ausencias"><span class="icon">04</span> Ausências</button>
-    <button data-tab="relatorios"><span class="icon">05</span> Relatórios</button>
-    <button data-tab="cartao"><span class="icon">06</span> Cartão de Ponto</button>
-    <button data-tab="config"><span class="icon">⚙</span> Feriados</button>
-    <button data-tab="etiquetas"><span class="icon">🏷</span> Etiquetas</button>
+    <button data-tab="empresas"><span class="icon">🏢</span> Empresas</button>
+    <button data-tab="colaboradores"><span class="icon">👥</span> Colaboradores</button>
+    <button data-tab="ponto"><span class="icon">⏱️</span> Registro de Ponto</button>
+    <button data-tab="abonos"><span class="icon">📝</span> Abono de Batidas</button>
+    <button data-tab="ausencias"><span class="icon">🌴</span> Ausências</button>
+    <button data-tab="folha"><span class="icon">💰</span> Folha de Pagamento</button>
+    <button data-tab="nr1"><span class="icon">🧠</span> NR-1</button>
+    <button data-tab="epi"><span class="icon">🦺</span> Solicitações de EPI</button>
+    <button data-tab="relatorios"><span class="icon">📊</span> Relatórios</button>
+    <button data-tab="cartao"><span class="icon">🪪</span> Cartão de Ponto</button>
+    <button data-tab="config"><span class="icon">🗓️</span> Feriados</button>
+    <button data-tab="etiquetas"><span class="icon">🏷️</span> Etiquetas</button>
     <button data-tab="usuarios"><span class="icon">🔑</span> Usuários</button>
     <button data-tab="auditoria"><span class="icon">📜</span> Auditoria</button>
+    <button data-tab="notificacoes"><span class="icon">🔔</span> Notificações <span id="badge-notif" class="badge red" style="display:none; margin-left:4px; padding:1px 6px;"></span></button>
     <button data-tab="compliance"><span class="icon">⚖️</span> Compliance</button>
     <button data-tab="conta"><span class="icon">👤</span> Minha Conta</button>
     <div class="userbox">
@@ -352,17 +418,22 @@ let API_BASE = '/api';
 let TOKEN = null;
 let PERFIL = null;
 let MEU_COLABORADOR_ID = null;
+let EMPRESA_ID = null;
+let EMPRESA_NOME = null;
+let SUPER_ADMIN_TOKEN = null;
+let SUPER_ADMIN_LOGIN = null;
 
 // Quais abas cada perfil enxerga. "colaborador" só usa as ferramentas de
 // self-service; "gestor" tem tudo que colaborador tem, mais gestão de equipe;
 // rh/admin veem tudo. A API já bloqueia no backend — isso é só a interface
 // não oferecer botões que o perfil não vai conseguir usar.
 const ABAS_POR_PERFIL = {
-  colaborador: ['abonos', 'ausencias', 'cartao', 'config', 'conta'],
-  analista: ['colaboradores', 'ponto', 'abonos', 'cartao', 'config', 'conta'],
-  coordenador: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'conta'],
-  consulta: ['painel', 'colaboradores', 'relatorios', 'cartao', 'ausencias', 'config', 'conta'],
-  admin: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'relatorios', 'cartao', 'config', 'etiquetas', 'usuarios', 'auditoria', 'compliance', 'conta'],
+  colaborador: ['abonos', 'ausencias', 'cartao', 'config', 'epi', 'folha', 'notificacoes', 'conta'],
+  analista: ['colaboradores', 'ponto', 'abonos', 'cartao', 'config', 'notificacoes', 'conta'],
+  coordenador: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'folha', 'nr1', 'epi', 'relatorios', 'cartao', 'config', 'notificacoes', 'conta'],
+  consulta: ['painel', 'colaboradores', 'relatorios', 'cartao', 'ausencias', 'folha', 'nr1', 'epi', 'config', 'notificacoes', 'conta'],
+  admin: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'folha', 'nr1', 'epi', 'relatorios', 'cartao', 'config', 'etiquetas', 'usuarios', 'auditoria', 'compliance', 'notificacoes', 'conta'],
+  super_admin: ['empresas', 'conta'],
 };
 
 function abaPermitida(tab){
@@ -420,25 +491,56 @@ document.getElementById('btn-toggle-tema').addEventListener('click', ()=>{
   const claro = tela.classList.toggle('tema-claro');
   btn.textContent = claro ? '🌙 Tema escuro' : '🌞 Tema claro';
 });
-document.getElementById('link-esqueci').addEventListener('click', (e)=>{
+let modoSuperAdmin = false;
+document.getElementById('link-toggle-super-admin').addEventListener('click', (e)=>{
   e.preventDefault();
-  document.getElementById('login-msg').innerHTML = `<div class="login-ok">Fale com o RH para redefinir sua senha em Administração de Usuários.</div>`;
+  modoSuperAdmin = !modoSuperAdmin;
+  document.getElementById('label-login-empresa').style.display = modoSuperAdmin ? 'none' : '';
+  document.getElementById('wrap-login-empresa').style.display = modoSuperAdmin ? 'none' : '';
+  e.target.textContent = modoSuperAdmin ? '← Voltar (entrar numa empresa)' : 'Sou administrador do sistema';
+  document.getElementById('login-msg').innerHTML = modoSuperAdmin
+    ? `<div class="login-ok">Modo Administrador do Sistema — entre com o login que não pertence a nenhuma empresa específica.</div>` : '';
 });
 
+async function carregarEmpresasNoLogin(selecionarId){
+  const select = document.getElementById('login-empresa');
+  const apiBase = document.getElementById('login-api').value.trim().replace(/\/$/, '') || '/api';
+  try{
+    const res = await fetch(`${apiBase}/empresas`);
+    const empresas = await res.json();
+    if(empresas.length === 0){
+      select.innerHTML = `<option value="">Nenhuma empresa cadastrada ainda</option>`;
+      return;
+    }
+    select.innerHTML = empresas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+    if(selecionarId) select.value = selecionarId;
+  }catch(err){
+    select.innerHTML = `<option value="">Não foi possível carregar as empresas</option>`;
+  }
+}
+carregarEmpresasNoLogin();
+
 async function doLogin(){
+  const empresaId = modoSuperAdmin ? '' : document.getElementById('login-empresa').value;
   const login = document.getElementById('login-user').value.trim();
   const senha = document.getElementById('login-pass').value;
   API_BASE = document.getElementById('login-api').value.trim().replace(/\/$/, '');
   const btn = document.getElementById('btn-login');
   const msgEl = document.getElementById('login-msg');
   msgEl.innerHTML = '';
+  if(!modoSuperAdmin && !empresaId){ msgEl.innerHTML = `<div class="login-err">Selecione a empresa.</div>`; return; }
   btn.disabled = true; btn.textContent = 'Entrando...';
   try{
-    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify({ login, senha }) });
+    const body = { login, senha };
+    if(empresaId) body.empresaId = empresaId;
+    const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify(body) });
     TOKEN = data.token; PERFIL = data.perfil; MEU_COLABORADOR_ID = data.colaboradorId || null;
+    EMPRESA_ID = data.empresaId; EMPRESA_NOME = data.empresaNome;
+    if(PERFIL === 'super_admin') { SUPER_ADMIN_TOKEN = TOKEN; SUPER_ADMIN_LOGIN = login; }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     document.getElementById('who-label').textContent = `${login} · ${PERFIL}`;
+    atualizarEmpresaLabel();
     aplicarVisibilidadeAbas();
     if(!abaPermitida(currentTab)){
       const primeiraPermitida = (ABAS_POR_PERFIL[PERFIL] || [])[0] || 'cartao';
@@ -446,6 +548,10 @@ async function doLogin(){
       document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab));
     }
     await bootstrap();
+    if(PERFIL !== 'super_admin'){
+      atualizarBadgeNotificacoes();
+      setInterval(atualizarBadgeNotificacoes, 60000);
+    }
   }catch(err){
     msgEl.innerHTML = `<div class="login-err">${err.message.includes('Failed to fetch') ? 'Não foi possível conectar à API. Verifique se o backend está rodando e o endereço está correto.' : err.message}</div>`;
   }finally{
@@ -453,8 +559,31 @@ async function doLogin(){
   }
 }
 
+function atualizarEmpresaLabel(){
+  const empresaLabel = document.getElementById('empresa-label');
+  if(!empresaLabel) return;
+  if(PERFIL === 'super_admin'){
+    empresaLabel.textContent = '⚙ Administração do Sistema';
+  }else if(SUPER_ADMIN_TOKEN && TOKEN !== SUPER_ADMIN_TOKEN){
+    empresaLabel.innerHTML = `${EMPRESA_NOME || ''} <span style="cursor:pointer; text-decoration:underline;" id="btn-voltar-superadmin">← voltar</span>`;
+    document.getElementById('btn-voltar-superadmin')?.addEventListener('click', voltarParaSuperAdmin);
+  }else{
+    empresaLabel.textContent = EMPRESA_NOME || '';
+  }
+}
+
+function voltarParaSuperAdmin(){
+  TOKEN = SUPER_ADMIN_TOKEN; PERFIL = 'super_admin'; EMPRESA_ID = null; EMPRESA_NOME = null; MEU_COLABORADOR_ID = null;
+  document.getElementById('who-label').textContent = `${SUPER_ADMIN_LOGIN} · super_admin`;
+  atualizarEmpresaLabel();
+  aplicarVisibilidadeAbas();
+  currentTab = 'empresas';
+  document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab));
+  render();
+}
+
 document.getElementById('btn-logout').addEventListener('click', ()=>{
-  TOKEN = null; PERFIL = null; MEU_COLABORADOR_ID = null;
+  TOKEN = null; PERFIL = null; MEU_COLABORADOR_ID = null; EMPRESA_ID = null; EMPRESA_NOME = null; SUPER_ADMIN_TOKEN = null; SUPER_ADMIN_LOGIN = null;
   document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>{ b.style.display=''; });
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
@@ -536,6 +665,11 @@ function render(){
     etiquetas: renderEtiquetas,
     usuarios: renderUsuarios,
     auditoria: renderAuditoria,
+    notificacoes: renderNotificacoes,
+    folha: renderFolha,
+    empresas: renderEmpresas,
+    nr1: renderNr1,
+    epi: renderEpi,
     compliance: renderCompliance,
     conta: renderConta
   };
@@ -557,14 +691,14 @@ const COR_STATUS = {
   ausencia: 'gray', abonado: 'green', folga: 'gray',
 };
 const CARDS_RESUMO = [
-  { chave: 'presente', label: 'Presentes', icone: '🟢' },
-  { chave: 'presente_atrasado', label: 'Presentes (atrasados)', icone: '🟠' },
-  { chave: 'atrasado', label: 'Atrasados (não chegaram)', icone: '🔴' },
-  { chave: 'intervalo', label: 'No intervalo', icone: '🍽️' },
-  { chave: 'nao_iniciado', label: 'Ainda não iniciaram', icone: '⏳' },
-  { chave: 'concluido', label: 'Concluíram o dia', icone: '✅' },
-  { chave: 'ausencia', label: 'Ausentes (férias/atestado)', icone: '🛌' },
-  { chave: 'folga', label: 'Folga hoje', icone: '📅' },
+  { chave: 'presente', label: 'Presentes', icone: '🟢', cor: '#166534', corBg: 'rgba(22,101,52,.1)' },
+  { chave: 'presente_atrasado', label: 'Presentes (atrasados)', icone: '🟠', cor: '#8A5A0A', corBg: 'rgba(138,90,10,.1)' },
+  { chave: 'atrasado', label: 'Atrasados (não chegaram)', icone: '🔴', cor: '#B91C1C', corBg: 'rgba(185,28,28,.1)' },
+  { chave: 'intervalo', label: 'No intervalo', icone: '🍽️', cor: '#8B5CF6', corBg: 'rgba(139,92,246,.1)' },
+  { chave: 'nao_iniciado', label: 'Ainda não iniciaram', icone: '⏳', cor: '#6B7480', corBg: 'rgba(107,116,128,.1)' },
+  { chave: 'concluido', label: 'Concluíram o dia', icone: '✅', cor: '#0E7490', corBg: 'rgba(14,116,144,.1)' },
+  { chave: 'ausencia', label: 'Ausentes (férias/atestado)', icone: '🛌', cor: '#6B7480', corBg: 'rgba(107,116,128,.1)' },
+  { chave: 'folga', label: 'Folga hoje', icone: '📅', cor: '#22D3EE', corBg: 'rgba(34,211,238,.12)' },
 ];
 
 async function renderPainel(){
@@ -612,10 +746,10 @@ async function carregarPainel(){
   if(currentTab !== 'painel') return;
 
   cardsEl.innerHTML = CARDS_RESUMO.map(c=>`
-    <div class="card" style="text-align:center; padding:16px; margin-bottom:0;">
-      <div style="font-size:22px;">${c.icone}</div>
-      <div style="font-size:26px; font-weight:700; color:var(--navy-dark); margin:4px 0;">${dados.contagem[c.chave]||0}</div>
-      <div style="font-size:11.5px; color:var(--muted);">${c.label}</div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:${c.corBg}; color:${c.cor};">${c.icone}</div>
+      <div class="stat-num nums">${dados.contagem[c.chave]||0}</div>
+      <div class="stat-label">${c.label}</div>
     </div>
   `).join('');
 
@@ -654,14 +788,17 @@ function renderColaboradores(){
       <h3>Novo colaborador</h3>
       <div class="grid cols-4" style="margin-bottom:12px;">
         <div class="field"><label>Nome completo</label><input id="f-nome"></div>
+        <div class="field"><label>CPF *</label><input id="f-cpf" placeholder="000.000.000-00"></div>
         <div class="field"><label>Matrícula</label><input id="f-mat"></div>
         <div class="field"><label>Cargo</label><input id="f-cargo"></div>
-        <div class="field"><label>Departamento</label><input id="f-depto"></div>
       </div>
       <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Departamento</label><input id="f-depto"></div>
         <div class="field"><label>Data de admissão</label><input type="date" id="f-adm"></div>
         <div class="field"><label>Horário de entrada padrão</label><input type="time" id="f-entrada" value="08:00"></div>
         <div class="field"><label>Tolerância (minutos)</label><input type="number" id="f-tolerancia" value="5" min="0" max="60"></div>
+      </div>
+      <div class="grid cols-4" style="margin-bottom:12px;">
         <div class="field"><label>Foto</label><input type="file" accept="image/*" id="f-foto"></div>
       </div>
       <div class="grid cols-4" style="margin-bottom:12px;">
@@ -675,18 +812,48 @@ function renderColaboradores(){
       <div id="colab-msg"></div>
       <button class="btn gold" id="btn-add-colab">+ Adicionar colaborador</button>
     </div>` : ''}
-    <div class="card"><h3>Colaboradores cadastrados (${colaboradoresCache.length})</h3><div id="lista-colab"></div></div>
+    <div class="card"><h3>Colaboradores cadastrados (${colaboradoresCache.length})</h3>
+      <div class="field" style="max-width:240px; margin-bottom:12px;">
+        <label>Mostrar</label>
+        <select id="filtro-status-colab">
+          <option value="ativo" selected>Ativos</option>
+          <option value="inativo">Desligados</option>
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div id="lista-colab"></div>
+    </div>
+    <div id="modal-desligar-wrap"></div>
+    <div id="modal-recontratacao-wrap"></div>
   `;
   main.appendChild(wrap);
 
   if(podeCadastrar) document.getElementById('btn-add-colab').addEventListener('click', async ()=>{
     const nome = document.getElementById('f-nome').value.trim();
+    const cpf = document.getElementById('f-cpf').value.trim();
     if(!nome){ showMsg('colab-msg','Informe o nome do colaborador.','err'); return; }
+    if(!cpf){ showMsg('colab-msg','CPF é obrigatório.','err'); return; }
+
+    // Antes de criar, confere se já existe alguém INATIVO com esse CPF —
+    // evita duplicar cadastro de quem está sendo recontratado.
+    try{
+      const check = await apiFetch(`/colaboradores/verificar-cpf?cpf=${encodeURIComponent(cpf)}`);
+      if(check.encontrado && check.podeReativar){
+        abrirModalRecontratacao(check.colaborador, check.historicoDesligamentos);
+        return;
+      }
+      if(check.encontrado && !check.podeReativar){
+        showMsg('colab-msg', `Já existe um colaborador ATIVO com esse CPF (${check.colaborador.nome}).`, 'err');
+        return;
+      }
+    }catch(err){ /* se a checagem falhar, segue o fluxo normal de cadastro */ }
+
     const jornada = {};
     DIA_KEYS.forEach(k=> jornada[k] = parseFloat(document.getElementById(`f-j-${k}`).value)||0);
 
     const fd = new FormData();
     fd.append('nome', nome);
+    fd.append('cpf', cpf);
     fd.append('matricula', document.getElementById('f-mat').value.trim());
     fd.append('cargo', document.getElementById('f-cargo').value.trim());
     fd.append('departamento', document.getElementById('f-depto').value.trim());
@@ -705,20 +872,35 @@ function renderColaboradores(){
     }catch(err){ showMsg('colab-msg', err.message, 'err'); }
   });
 
-  const listaEl = wrap.querySelector('#lista-colab');
-  if(colaboradoresCache.length===0){
-    listaEl.innerHTML = `<div class="empty">Nenhum colaborador cadastrado ainda.</div>`;
+  document.getElementById('filtro-status-colab').addEventListener('change', renderListaColaboradores);
+  renderListaColaboradores();
+}
+
+function renderListaColaboradores(){
+  const listaEl = document.getElementById('lista-colab');
+  if(!listaEl) return;
+  const podeCadastrar = PERFIL === 'coordenador' || PERFIL === 'admin';
+  const podeExcluir = PERFIL === 'admin';
+  const filtro = document.getElementById('filtro-status-colab')?.value ?? 'ativo';
+  const lista = filtro ? colaboradoresCache.filter(c=>c.status===filtro) : colaboradoresCache;
+
+  if(lista.length===0){
+    listaEl.innerHTML = `<div class="empty">Nenhum colaborador ${filtro==='inativo'?'desligado':'cadastrado'} nesse filtro.</div>`;
   }else{
-    listaEl.innerHTML = `<table><thead><tr><th></th><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Depto</th><th>Jornada</th><th></th></tr></thead><tbody>
-      ${colaboradoresCache.map(c=>`
-        <tr>
+    listaEl.innerHTML = `<table><thead><tr><th></th><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Status</th><th>Jornada</th><th></th></tr></thead><tbody>
+      ${lista.map(c=>`
+        <tr style="${c.status==='inativo'?'opacity:.7;':''}">
           <td><div class="photo-box" style="width:34px;height:40px;">${fotoUrl(c)?`<img src="${fotoUrl(c)}">`:'<div class="ph" style="font-size:8px;">sem foto</div>'}</div></td>
           <td><strong>${c.nome}</strong></td>
           <td class="nums">${c.matricula||'—'}</td>
           <td>${c.cargo||'—'}</td>
-          <td>${c.departamento||'—'}</td>
+          <td>${c.status==='ativo'?'<span class="badge green">Ativo</span>':`<span class="badge red">Desligado</span>`}</td>
           <td class="nums">${DIA_KEYS.map(k=>c.jornada[k]).join('/')}</td>
-          <td>${podeExcluir?`<button class="btn danger sm" data-del="${c.id}">Remover</button>`:''}</td>
+          <td style="white-space:nowrap;">
+            ${podeCadastrar && c.status==='ativo' ? `<button class="btn sm ghost" data-desligar="${c.id}">Desligar</button>` : ''}
+            ${podeCadastrar && c.status==='inativo' ? `<button class="btn sm gold" data-reativar="${c.id}">Recontratar</button>` : ''}
+            ${podeExcluir?`<button class="btn danger sm" data-del="${c.id}">Remover</button>`:''}
+          </td>
         </tr>`).join('')}
     </tbody></table>`;
     listaEl.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
@@ -727,7 +909,97 @@ function renderColaboradores(){
         catch(err){ alert(err.message); }
       }
     }));
+    listaEl.querySelectorAll('[data-desligar]').forEach(b=>b.addEventListener('click', ()=>{
+      const c = colaboradoresCache.find(x=>x.id===b.dataset.desligar);
+      abrirModalDesligar(c);
+    }));
+    listaEl.querySelectorAll('[data-reativar]').forEach(b=>b.addEventListener('click', async ()=>{
+      const dataAdmissao = prompt('Nova data de admissão (AAAA-MM-DD):', new Date().toISOString().slice(0,10));
+      if(!dataAdmissao) return;
+      try{
+        await apiFetch(`/colaboradores/${b.dataset.reativar}/reativar`, { method:'POST', body: JSON.stringify({ dataAdmissao }) });
+        await refreshColaboradores();
+        render();
+      }catch(err){ alert(err.message); }
+    }));
   }
+}
+
+function abrirModalDesligar(colaborador){
+  const wrap = document.getElementById('modal-desligar-wrap');
+  wrap.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h3>Desligar ${colaborador.nome}</h3>
+        <div class="field" style="margin-bottom:12px;"><label>Tipo</label>
+          <select id="dl-tipo">
+            <option value="pedido_demissao">Pedido de demissão</option>
+            <option value="dispensa_sem_justa_causa">Dispensa sem justa causa</option>
+            <option value="dispensa_com_justa_causa">Dispensa com justa causa</option>
+            <option value="termino_contrato">Término de contrato</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:12px;"><label>Data do desligamento</label><input type="date" id="dl-data" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field" style="margin-bottom:12px;"><label>Motivo</label><textarea id="dl-motivo" rows="2"></textarea></div>
+        <div class="field" style="margin-bottom:14px;"><label>Termo de rescisão / aviso prévio (opcional)</label><input type="file" accept="application/pdf,image/*" id="dl-anexo"></div>
+        <div id="dl-msg"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn danger" id="btn-confirmar-desligar" style="flex:1;">Confirmar desligamento</button>
+          <button class="btn ghost" id="btn-cancelar-desligar" style="flex:1;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-cancelar-desligar').addEventListener('click', ()=>{ wrap.innerHTML=''; });
+  document.getElementById('btn-confirmar-desligar').addEventListener('click', async ()=>{
+    const fd = new FormData();
+    fd.append('tipo', document.getElementById('dl-tipo').value);
+    fd.append('dataDesligamento', document.getElementById('dl-data').value);
+    fd.append('motivo', document.getElementById('dl-motivo').value);
+    const arq = document.getElementById('dl-anexo').files[0];
+    if(arq) fd.append('anexo', arq);
+    try{
+      await apiFetch(`/colaboradores/${colaborador.id}/desligar`, { method:'POST', body: fd });
+      wrap.innerHTML = '';
+      await refreshColaboradores();
+      render();
+    }catch(err){ showMsg('dl-msg', err.message, 'err'); }
+  });
+}
+
+function abrirModalRecontratacao(colaboradorInativo, historico){
+  const wrap = document.getElementById('modal-recontratacao-wrap');
+  const ultimoDesligamento = historico[0];
+  wrap.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h3>Colaborador já cadastrado</h3>
+        <p style="font-size:13.5px; color:var(--muted); margin-top:-4px;">
+          Já existe um cadastro de <strong>${colaboradorInativo.nome}</strong> com esse CPF, desligado em
+          ${ultimoDesligamento?ultimoDesligamento.dataDesligamento:'—'}
+          ${ultimoDesligamento?` (${ultimoDesligamento.tipo})`:''}.
+          Em vez de criar um cadastro novo, você pode reativar este — o histórico de ponto, ausências e
+          desligamentos anteriores continua todo preservado.
+        </p>
+        <div class="field" style="margin-bottom:14px;"><label>Nova data de admissão</label><input type="date" id="rc-data" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div id="rc-msg"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn gold" id="btn-confirmar-reativar" style="flex:1;">Reativar cadastro existente</button>
+          <button class="btn ghost" id="btn-cancelar-reativar" style="flex:1;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-cancelar-reativar').addEventListener('click', ()=>{ wrap.innerHTML=''; });
+  document.getElementById('btn-confirmar-reativar').addEventListener('click', async ()=>{
+    try{
+      await apiFetch(`/colaboradores/${colaboradorInativo.id}/reativar`, { method:'POST', body: JSON.stringify({ dataAdmissao: document.getElementById('rc-data').value }) });
+      wrap.innerHTML = '';
+      await refreshColaboradores();
+      render();
+    }catch(err){ showMsg('rc-msg', err.message, 'err'); }
+  });
 }
 
 /* ============================================================
@@ -915,6 +1187,7 @@ async function renderAusencias(){
           <div class="field"><label>Início do gozo</label><input type="date" id="fe-inicio"></div>
           <div class="field"><label>Fim do gozo</label><input type="date" id="fe-fim"></div>
         </div>
+        <div class="field" style="margin-bottom:12px; max-width:320px;"><label>Recibo de férias (opcional agora, pode anexar depois)</label><input type="file" accept="application/pdf,image/*" id="fe-anexo"></div>
         <button class="btn gold" id="btn-add-ferias">+ Registrar férias</button>
       </div>` : ''}
       <div class="card"><h3>Férias registradas</h3><div id="lista-ferias"><div class="loading">Carregando...</div></div></div>
@@ -923,13 +1196,17 @@ async function renderAusencias(){
       const colaboradorId = document.getElementById('fe-colab').value;
       const dataInicioGozo = document.getElementById('fe-inicio').value, dataFimGozo = document.getElementById('fe-fim').value;
       if(!colaboradorId||!dataInicioGozo||!dataFimGozo) return;
+      const fd = new FormData();
+      fd.append('colaboradorId', colaboradorId);
+      fd.append('dataInicioGozo', dataInicioGozo);
+      fd.append('dataFimGozo', dataFimGozo);
+      fd.append('periodoAquisitivoInicio', document.getElementById('fe-aq-i').value);
+      fd.append('periodoAquisitivoFim', document.getElementById('fe-aq-f').value);
+      fd.append('diasAbonoPecuniario', parseInt(document.getElementById('fe-abono').value)||0);
+      const arq = document.getElementById('fe-anexo').files[0];
+      if(arq) fd.append('anexo', arq);
       try{
-        await apiFetch('/ausencias/ferias', { method:'POST', body: JSON.stringify({
-          colaboradorId, dataInicioGozo, dataFimGozo,
-          periodoAquisitivoInicio: document.getElementById('fe-aq-i').value,
-          periodoAquisitivoFim: document.getElementById('fe-aq-f').value,
-          diasAbonoPecuniario: parseInt(document.getElementById('fe-abono').value)||0
-        })});
+        await apiFetch('/ausencias/ferias', { method:'POST', body: fd });
         render();
       }catch(err){ alert(err.message); }
     });
@@ -938,11 +1215,11 @@ async function renderAusencias(){
     if(currentTab!=='ausencias'||subTab.ausencias!=='ferias') return;
     const l = document.getElementById('lista-ferias');
     l.innerHTML = lista.length===0?`<div class="empty">Nenhuma férias registrada.</div>`:
-      `<table><thead><tr><th>Colaborador</th><th>Per. Aquisitivo</th><th>Gozo</th><th>Dias</th><th>Abono</th></tr></thead><tbody>
+      `<table><thead><tr><th>Colaborador</th><th>Per. Aquisitivo</th><th>Gozo</th><th>Dias</th><th>Abono</th><th>Recibo</th></tr></thead><tbody>
         ${lista.map(f=>{
           const c=findColab(f.colaboradorId);
           const dias = Math.round((new Date(f.dataFimGozo)-new Date(f.dataInicioGozo))/86400000)+1;
-          return `<tr><td>${c?c.nome:'—'}</td><td class="nums">${f.periodoAquisitivoInicio||'—'} a ${f.periodoAquisitivoFim||'—'}</td><td class="nums">${f.dataInicioGozo} a ${f.dataFimGozo}</td><td class="nums">${dias}</td><td class="nums">${f.diasAbonoPecuniario}</td></tr>`;
+          return `<tr><td>${c?c.nome:'—'}</td><td class="nums">${f.periodoAquisitivoInicio||'—'} a ${f.periodoAquisitivoFim||'—'}</td><td class="nums">${f.dataInicioGozo} a ${f.dataFimGozo}</td><td class="nums">${dias}</td><td class="nums">${f.diasAbonoPecuniario}</td><td>${f.anexoPath?`<a href="${f.anexoPath.startsWith('http')?f.anexoPath:apiOrigin()+f.anexoPath}" target="_blank">Ver</a>`:'—'}</td></tr>`;
         }).join('')}
       </tbody></table>`;
   }
@@ -958,6 +1235,7 @@ async function renderAusencias(){
           <div class="field"><label>CID (opcional)</label><input id="at-cid"></div>
         </div>
         <div class="field" style="margin-bottom:12px;"><label>Médico / observação</label><input id="at-medico"></div>
+        <div class="field" style="margin-bottom:12px; max-width:320px;"><label>Atestado (PDF/foto)</label><input type="file" accept="application/pdf,image/*" id="at-anexo"></div>
         <button class="btn gold" id="btn-add-atestado">+ Registrar atestado</button>
       </div>` : ''}
       <div class="card"><h3>Atestados registrados</h3><div id="lista-atestados"><div class="loading">Carregando...</div></div></div>
@@ -966,10 +1244,16 @@ async function renderAusencias(){
       const colaboradorId = document.getElementById('at-colab').value;
       const dataInicio = document.getElementById('at-inicio').value, dataFim = document.getElementById('at-fim').value;
       if(!colaboradorId||!dataInicio||!dataFim) return;
+      const fd = new FormData();
+      fd.append('colaboradorId', colaboradorId);
+      fd.append('dataInicio', dataInicio);
+      fd.append('dataFim', dataFim);
+      fd.append('cid', document.getElementById('at-cid').value);
+      fd.append('medico', document.getElementById('at-medico').value);
+      const arq = document.getElementById('at-anexo').files[0];
+      if(arq) fd.append('anexo', arq);
       try{
-        await apiFetch('/ausencias/atestados', { method:'POST', body: JSON.stringify({
-          colaboradorId, dataInicio, dataFim, cid: document.getElementById('at-cid').value, medico: document.getElementById('at-medico').value
-        })});
+        await apiFetch('/ausencias/atestados', { method:'POST', body: fd });
         render();
       }catch(err){ alert(err.message); }
     });
@@ -978,11 +1262,11 @@ async function renderAusencias(){
     if(currentTab!=='ausencias'||subTab.ausencias!=='atestado') return;
     const l = document.getElementById('lista-atestados');
     l.innerHTML = lista.length===0?`<div class="empty">Nenhum atestado registrado.</div>`:
-      `<table><thead><tr><th>Colaborador</th><th>Período</th><th>Dias</th><th>CID</th><th>Médico</th></tr></thead><tbody>
+      `<table><thead><tr><th>Colaborador</th><th>Período</th><th>Dias</th><th>CID</th><th>Médico</th><th>Anexo</th></tr></thead><tbody>
         ${lista.map(a=>{
           const c=findColab(a.colaboradorId);
           const dias = Math.round((new Date(a.dataFim)-new Date(a.dataInicio))/86400000)+1;
-          return `<tr><td>${c?c.nome:'—'}</td><td class="nums">${a.dataInicio} a ${a.dataFim}</td><td class="nums">${dias}${dias>15?' <span class="badge amber">INSS</span>':''}</td><td>${a.cid||'—'}</td><td>${a.medico||'—'}</td></tr>`;
+          return `<tr><td>${c?c.nome:'—'}</td><td class="nums">${a.dataInicio} a ${a.dataFim}</td><td class="nums">${dias}${dias>15?' <span class="badge amber">INSS</span>':''}</td><td>${a.cid||'—'}</td><td>${a.medico||'—'}</td><td>${a.anexoPath?`<a href="${a.anexoPath.startsWith('http')?a.anexoPath:apiOrigin()+a.anexoPath}" target="_blank">Ver</a>`:'—'}</td></tr>`;
         }).join('')}
       </tbody></table>`;
   }
@@ -998,6 +1282,7 @@ async function renderAusencias(){
           <div class="field"><label>Fim (se suspensão)</label><input type="date" id="oc-fim"></div>
         </div>
         <div class="field" style="margin-bottom:12px;"><label>Motivo</label><textarea id="oc-motivo" rows="2"></textarea></div>
+        <div class="field" style="margin-bottom:12px; max-width:320px;"><label>Termo de advertência/suspensão (PDF/foto)</label><input type="file" accept="application/pdf,image/*" id="oc-anexo"></div>
         <button class="btn gold" id="btn-add-oc">+ Registrar ocorrência</button>
       </div>` : ''}
       <div class="card"><h3>Ocorrências registradas</h3><div id="lista-oc"><div class="loading">Carregando...</div></div></div>
@@ -1006,11 +1291,16 @@ async function renderAusencias(){
       const colaboradorId = document.getElementById('oc-colab').value;
       const dataInicio = document.getElementById('oc-inicio').value;
       if(!colaboradorId||!dataInicio) return;
+      const fd = new FormData();
+      fd.append('colaboradorId', colaboradorId);
+      fd.append('tipo', document.getElementById('oc-tipo').value);
+      fd.append('dataInicio', dataInicio);
+      fd.append('dataFim', document.getElementById('oc-fim').value);
+      fd.append('motivo', document.getElementById('oc-motivo').value);
+      const arq = document.getElementById('oc-anexo').files[0];
+      if(arq) fd.append('anexo', arq);
       try{
-        await apiFetch('/ausencias/ocorrencias', { method:'POST', body: JSON.stringify({
-          colaboradorId, tipo: document.getElementById('oc-tipo').value, dataInicio,
-          dataFim: document.getElementById('oc-fim').value, motivo: document.getElementById('oc-motivo').value
-        })});
+        await apiFetch('/ausencias/ocorrencias', { method:'POST', body: fd });
         render();
       }catch(err){ alert(err.message); }
     });
@@ -1019,10 +1309,10 @@ async function renderAusencias(){
     if(currentTab!=='ausencias'||subTab.ausencias!=='ocorrencia') return;
     const l = document.getElementById('lista-oc');
     l.innerHTML = lista.length===0?`<div class="empty">Nenhuma ocorrência registrada.</div>`:
-      `<table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Período</th><th>Motivo</th></tr></thead><tbody>
+      `<table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Período</th><th>Motivo</th><th>Anexo</th></tr></thead><tbody>
         ${lista.map(o=>{
           const c=findColab(o.colaboradorId);
-          return `<tr><td>${c?c.nome:'—'}</td><td><span class="badge ${o.tipo==='suspensao'?'red':'amber'}">${o.tipo}</span></td><td class="nums">${o.dataInicio}${o.dataFim?' a '+o.dataFim:''}</td><td>${o.motivo||'—'}</td></tr>`;
+          return `<tr><td>${c?c.nome:'—'}</td><td><span class="badge ${o.tipo==='suspensao'?'red':'amber'}">${o.tipo}</span></td><td class="nums">${o.dataInicio}${o.dataFim?' a '+o.dataFim:''}</td><td>${o.motivo||'—'}</td><td>${o.anexoPath?`<a href="${o.anexoPath.startsWith('http')?o.anexoPath:apiOrigin()+o.anexoPath}" target="_blank">Ver</a>`:'—'}</td></tr>`;
         }).join('')}
       </tbody></table>`;
   }
@@ -1041,6 +1331,8 @@ async function renderRelatorios(){
       <button data-s="ferias" class="${subTab.relatorios==='ferias'?'active':''}">Férias</button>
       <button data-s="ocorrencia" class="${subTab.relatorios==='ocorrencia'?'active':''}">Suspensão/Advertência</button>
       <button data-s="atestado" class="${subTab.relatorios==='atestado'?'active':''}">Atestado</button>
+      <button data-s="desligamentos" class="${subTab.relatorios==='desligamentos'?'active':''}">Desligamentos</button>
+      <button data-s="epi" class="${subTab.relatorios==='epi'?'active':''}">EPI</button>
     </div>
     <div class="card no-print" style="display:flex; gap:12px; align-items:flex-end;">
       <div class="field" style="width:180px;"><label>Mês de referência</label><input type="month" id="rel-mes" value="${ym}"></div>
@@ -1058,7 +1350,7 @@ async function renderRelatorios(){
   document.getElementById('btn-export-xlsx').addEventListener('click', ()=>baixarExportacao('xlsx'));
   document.getElementById('btn-export-pdf').addEventListener('click', ()=>baixarExportacao('pdf'));
 
-  const TIPO_EXPORT = { falta: 'falta-atraso', ferias: 'ferias', ocorrencia: 'ocorrencias', atestado: 'atestados' };
+  const TIPO_EXPORT = { falta: 'falta-atraso', ferias: 'ferias', ocorrencia: 'ocorrencias', atestado: 'atestados', desligamentos: 'desligamentos', epi: 'epi' };
 
   async function baixarExportacao(formato){
     const mes = document.getElementById('rel-mes').value;
@@ -1120,6 +1412,19 @@ async function renderRelatorios(){
         content.innerHTML = lista.length? `<table><thead><tr><th>Colaborador</th><th>Período</th><th>Dias</th><th>CID</th><th>Médico</th></tr></thead><tbody>
           ${lista.map(a=>`<tr><td>${a.Colaborador?a.Colaborador.nome:'—'}</td><td class="nums">${a.dataInicio} a ${a.dataFim}</td><td class="nums">${a.dias}${a.exigeAfastamentoINSS?' <span class="badge amber">INSS</span>':''}</td><td>${a.cid||'—'}</td><td>${a.medico||'—'}</td></tr>`).join('')}
         </tbody></table>` : `<div class="empty">Nenhum atestado registrado.</div>`;
+      }
+      if(subTab.relatorios==='desligamentos'){
+        const lista = await apiFetch('/relatorios/desligamentos');
+        content.innerHTML = lista.length? `<table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Admissão</th><th>Desligamento</th><th>Tipo</th><th>Motivo</th></tr></thead><tbody>
+          ${lista.map(d=>`<tr><td>${d.colaborador}</td><td>${d.cargo}</td><td class="nums">${d.dataAdmissaoDoCiclo}</td><td class="nums">${d.dataDesligamento}</td><td>${d.tipo}</td><td>${d.motivo}</td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">Nenhum desligamento registrado.</div>`;
+      }
+      if(subTab.relatorios==='epi'){
+        const lista = await apiFetch('/relatorios/epi');
+        const corStatus = { pendente:'amber', entregue:'green', cancelado:'red' };
+        content.innerHTML = lista.length? `<table><thead><tr><th>Colaborador</th><th>Item</th><th>Qtd.</th><th>Solicitado</th><th>Entregue</th><th>Status</th></tr></thead><tbody>
+          ${lista.map(e=>`<tr><td>${e.colaborador}</td><td>${e.item}</td><td class="nums">${e.quantidade}</td><td class="nums">${e.dataSolicitacao}</td><td class="nums">${e.dataEntrega}</td><td><span class="badge ${corStatus[e.status]||'gray'}">${e.status}</span></td></tr>`).join('')}
+        </tbody></table>` : `<div class="empty">Nenhuma solicitação de EPI registrada.</div>`;
       }
     }catch(err){ content.innerHTML = `<div class="msg err">${err.message}</div>`; }
   }
@@ -1304,7 +1609,7 @@ async function renderEtiquetas(){
 
   // Carrega dados da empresa
   try{
-    const empresa = await apiFetch('/empresa');
+    const empresa = await apiFetch('/empresas/minha');
     document.getElementById('emp-razao').value = empresa.razaoSocial || '';
     document.getElementById('emp-cnpj').value = empresa.cnpj || '';
     document.getElementById('emp-atividade').value = empresa.atividadeEconomica || '';
@@ -1312,7 +1617,7 @@ async function renderEtiquetas(){
 
   document.getElementById('btn-salvar-empresa').addEventListener('click', async ()=>{
     try{
-      await apiFetch('/empresa', { method:'PUT', body: JSON.stringify({
+      await apiFetch('/empresas/minha', { method:'PUT', body: JSON.stringify({
         razaoSocial: document.getElementById('emp-razao').value,
         cnpj: document.getElementById('emp-cnpj').value,
         atividadeEconomica: document.getElementById('emp-atividade').value,
@@ -1350,7 +1655,7 @@ async function renderEtiquetas(){
   document.getElementById('btn-imprimir-etiquetas').addEventListener('click', ()=>window.print());
   document.getElementById('btn-gerar-etiquetas').addEventListener('click', async ()=>{
     let empresa = {};
-    try{ empresa = await apiFetch('/empresa'); }catch(e){}
+    try{ empresa = await apiFetch('/empresas/minha'); }catch(e){}
     gerarFolhaEtiquetas(empresa);
   });
 }
@@ -1567,6 +1872,59 @@ async function carregarAuditoria(){
 }
 
 /* ============================================================
+   TAB: NOTIFICAÇÕES
+   ============================================================ */
+async function renderNotificacoes(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Notificações</h1><p>Abonos pendentes, atrasos detectados e outros avisos do sistema</p></div></div>
+    <div class="card" id="notif-lista"><div class="loading">Carregando...</div></div>
+  `;
+  main.appendChild(wrap);
+  await carregarNotificacoes();
+}
+
+async function carregarNotificacoes(){
+  const cont = document.getElementById('notif-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch('/notificacoes'); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+
+  const rotuloTipo = {
+    abono_pendente: '📝 Abono pendente', abono_aprovado: '✅ Abono aprovado', abono_reprovado: '❌ Abono reprovado',
+    atraso_detectado: '⏰ Atraso detectado',
+  };
+
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhuma notificação.</div>` :
+    `<table><thead><tr><th></th><th>Quando</th><th>Título</th><th>Mensagem</th><th></th></tr></thead><tbody>
+      ${lista.map(n=>`
+        <tr style="${n.lida?'opacity:.55;':''}">
+          <td>${n.lida?'':'<span class="badge red" style="padding:2px 6px;">novo</span>'}</td>
+          <td class="nums" style="font-size:11.5px;">${new Date(n.createdAt).toLocaleString('pt-BR')}</td>
+          <td><strong style="font-size:12.5px;">${rotuloTipo[n.tipo]||n.titulo}</strong></td>
+          <td style="font-size:12.5px; color:var(--muted);">${n.mensagem}</td>
+          <td>${n.lida?'':`<button class="btn sm ghost" data-lida="${n.id}">Marcar lida</button>`}</td>
+        </tr>`).join('')}
+    </tbody></table>`;
+
+  cont.querySelectorAll('[data-lida]').forEach(b=>b.addEventListener('click', async ()=>{
+    try{ await apiFetch(`/notificacoes/${b.dataset.lida}/lida`, { method:'PATCH' }); carregarNotificacoes(); atualizarBadgeNotificacoes(); }
+    catch(err){ alert(err.message); }
+  }));
+}
+
+async function atualizarBadgeNotificacoes(){
+  const badge = document.getElementById('badge-notif');
+  if(!badge || !TOKEN) return;
+  try{
+    const r = await apiFetch('/notificacoes/nao-lidas/total');
+    if(r.total > 0){ badge.textContent = r.total; badge.style.display = 'inline-block'; }
+    else{ badge.style.display = 'none'; }
+  }catch(err){ /* silencioso — não interrompe o resto da UI por causa do badge */ }
+}
+
+/* ============================================================
    TAB: COMPLIANCE (admin only) — AFD/Portaria 671, integridade, campos extras
    ============================================================ */
 async function renderCompliance(){
@@ -1606,7 +1964,7 @@ async function renderCompliance(){
   main.appendChild(wrap);
 
   try{
-    const empresa = await apiFetch('/empresa');
+    const empresa = await apiFetch('/empresas/minha');
     document.getElementById('cp-cpf-resp').value = empresa.cpfResponsavelRegistros || '';
     document.getElementById('cp-inpi').value = empresa.numeroRegistroInpiRepP || '';
     document.getElementById('cp-local').value = empresa.localPrestacaoServico || '';
@@ -1614,8 +1972,8 @@ async function renderCompliance(){
 
   document.getElementById('btn-salvar-compliance').addEventListener('click', async ()=>{
     try{
-      const atual = await apiFetch('/empresa');
-      await apiFetch('/empresa', { method:'PUT', body: JSON.stringify({
+      const atual = await apiFetch('/empresas/minha');
+      await apiFetch('/empresas/minha', { method:'PUT', body: JSON.stringify({
         razaoSocial: atual.razaoSocial, cnpj: atual.cnpj, atividadeEconomica: atual.atividadeEconomica,
         cpfResponsavelRegistros: document.getElementById('cp-cpf-resp').value,
         numeroRegistroInpiRepP: document.getElementById('cp-inpi').value,
@@ -1661,6 +2019,348 @@ async function renderCompliance(){
         : `<div class="msg err">⚠️ Cadeia quebrada a partir do NSR ${r.quebrouNoNsr} — algum registro foi alterado fora da aplicação.</div>`;
     }catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; }
   });
+}
+
+/* ============================================================
+   TAB: EMPRESAS (exclusivo do Administrador do Sistema)
+   ============================================================ */
+async function renderEmpresas(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Empresas</h1><p>Cadastre empresas novas e entre em qualquer uma para dar suporte</p></div></div>
+    <div class="card">
+      <h3>Nova empresa</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Nome da empresa</label><input id="emp-nome" placeholder="Ex.: Codismolas"></div>
+        <div class="field"><label>CNPJ (opcional)</label><input id="emp-cnpj" placeholder="00.000.000/0000-00"></div>
+        <div class="field"><label>Login do administrador</label><input id="emp-admin-login" placeholder="admin"></div>
+        <div class="field"><label>Senha do administrador</label><input id="emp-admin-senha" type="password" placeholder="mín. 6 caracteres"></div>
+      </div>
+      <div id="emp-msg"></div>
+      <button class="btn gold" id="btn-add-empresa">+ Criar empresa</button>
+    </div>
+    <div class="card"><h3>Empresas cadastradas</h3><div id="lista-empresas"><div class="loading">Carregando...</div></div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-add-empresa').addEventListener('click', async ()=>{
+    const nomeEmpresa = document.getElementById('emp-nome').value.trim();
+    const adminLogin = document.getElementById('emp-admin-login').value.trim();
+    const adminSenha = document.getElementById('emp-admin-senha').value;
+    if(!nomeEmpresa || !adminLogin || !adminSenha){
+      showMsg('emp-msg', 'Preencha nome da empresa, login e senha do administrador.', 'err');
+      return;
+    }
+    try{
+      await apiFetch('/empresas', { method:'POST', body: JSON.stringify({
+        nomeEmpresa, cnpj: document.getElementById('emp-cnpj').value.trim(), adminLogin, adminSenha,
+      })});
+      showMsg('emp-msg', `Empresa "${nomeEmpresa}" criada.`, 'ok');
+      document.getElementById('emp-nome').value = '';
+      document.getElementById('emp-admin-login').value = '';
+      document.getElementById('emp-admin-senha').value = '';
+      carregarListaEmpresas();
+    }catch(err){ showMsg('emp-msg', err.message, 'err'); }
+  });
+
+  await carregarListaEmpresas();
+}
+
+async function carregarListaEmpresas(){
+  const cont = document.getElementById('lista-empresas');
+  if(!cont) return;
+  let empresas;
+  try{ empresas = await apiFetch('/empresas/todas'); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+
+  cont.innerHTML = empresas.length===0 ? `<div class="empty">Nenhuma empresa cadastrada.</div>` :
+    `<table><thead><tr><th>Nome</th><th>CNPJ</th><th>Status</th><th></th></tr></thead><tbody>
+      ${empresas.map(e=>`
+        <tr>
+          <td><strong>${e.nome}</strong></td>
+          <td class="nums">${e.cnpj||'—'}</td>
+          <td>${e.ativa?'<span class="badge green">Ativa</span>':'<span class="badge gray">Inativa</span>'}</td>
+          <td><button class="btn sm gold" data-entrar="${e.id}">Entrar →</button></td>
+        </tr>`).join('')}
+    </tbody></table>`;
+
+  cont.querySelectorAll('[data-entrar]').forEach(b=>b.addEventListener('click', async ()=>{
+    try{
+      const data = await apiFetch('/auth/entrar-empresa', { method:'POST', body: JSON.stringify({ empresaId: b.dataset.entrar }) });
+      TOKEN = data.token; PERFIL = data.perfil; MEU_COLABORADOR_ID = data.colaboradorId || null;
+      EMPRESA_ID = data.empresaId; EMPRESA_NOME = data.empresaNome;
+      document.getElementById('who-label').textContent = `${SUPER_ADMIN_LOGIN} (como admin) · ${PERFIL}`;
+      atualizarEmpresaLabel();
+      aplicarVisibilidadeAbas();
+      currentTab = (ABAS_POR_PERFIL[PERFIL] || [])[0] || 'painel';
+      document.querySelectorAll('nav.sidebar button[data-tab]').forEach(bb=>bb.classList.toggle('active', bb.dataset.tab===currentTab));
+      await bootstrap();
+      atualizarBadgeNotificacoes();
+      render();
+    }catch(err){ alert(err.message); }
+  }));
+}
+
+/* ============================================================
+   TAB: FOLHA DE PAGAMENTO
+   ============================================================ */
+async function renderFolha(){
+  const podeGerenciar = PERFIL==='coordenador' || PERFIL==='admin';
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Folha de Pagamento</h1><p>Dados bancários, salário e holerites mensais</p></div></div>
+    ${podeGerenciar ? `
+    <div class="card">
+      <h3>Lançar holerite</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Colaborador</label><select id="fp-colab">${colaboradoresCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+        <div class="field"><label>Competência</label><input type="month" id="fp-comp"></div>
+        <div class="field"><label>Valor Bruto (R$)</label><input type="number" step="0.01" id="fp-bruto"></div>
+        <div class="field"><label>Valor Líquido (R$)</label><input type="number" step="0.01" id="fp-liquido"></div>
+      </div>
+      <div class="grid cols-2" style="margin-bottom:12px;">
+        <div class="field"><label>Descontos (resumo livre)</label><input id="fp-descontos" placeholder="INSS: 350,00 | IRRF: 129,50"></div>
+        <div class="field"><label>Holerite (PDF)</label><input type="file" accept="application/pdf,image/*" id="fp-anexo"></div>
+      </div>
+      <div id="fp-msg"></div>
+      <button class="btn gold" id="btn-fp-add">+ Lançar holerite</button>
+    </div>` : ''}
+    <div class="card"><h3>Histórico de holerites</h3><div id="fp-lista"><div class="loading">Carregando...</div></div></div>
+  `;
+  main.appendChild(wrap);
+
+  if(podeGerenciar) document.getElementById('btn-fp-add').addEventListener('click', async ()=>{
+    const colaboradorId = document.getElementById('fp-colab').value;
+    const competencia = document.getElementById('fp-comp').value;
+    if(!colaboradorId || !competencia){ showMsg('fp-msg','Selecione colaborador e competência.','err'); return; }
+    const fd = new FormData();
+    fd.append('colaboradorId', colaboradorId);
+    fd.append('competencia', competencia);
+    fd.append('valorBruto', document.getElementById('fp-bruto').value);
+    fd.append('valorLiquido', document.getElementById('fp-liquido').value);
+    fd.append('descontosTexto', document.getElementById('fp-descontos').value);
+    const arq = document.getElementById('fp-anexo').files[0];
+    if(arq) fd.append('anexo', arq);
+    try{
+      await apiFetch('/folha-pagamento/holerites', { method:'POST', body: fd });
+      showMsg('fp-msg','Holerite lançado.','ok');
+      carregarHolerites();
+    }catch(err){ showMsg('fp-msg', err.message, 'err'); }
+  });
+
+  await carregarHolerites();
+}
+async function carregarHolerites(){
+  const cont = document.getElementById('fp-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch('/folha-pagamento/holerites'); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  const nomeColab = id => (colaboradoresCache.find(c=>c.id===id)||{}).nome || '—';
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhum holerite lançado ainda.</div>` :
+    `<table><thead><tr><th>Colaborador</th><th>Competência</th><th>Bruto</th><th>Líquido</th><th>Descontos</th><th>Holerite</th></tr></thead><tbody>
+      ${lista.map(h=>`
+        <tr>
+          <td>${PERFIL==='colaborador'?'Você':nomeColab(h.colaboradorId)}</td>
+          <td class="nums">${h.competencia}</td>
+          <td class="nums">${h.valorBruto?'R$ '+Number(h.valorBruto).toFixed(2):'—'}</td>
+          <td class="nums">${h.valorLiquido?'R$ '+Number(h.valorLiquido).toFixed(2):'—'}</td>
+          <td style="font-size:12px; color:var(--muted);">${h.descontosTexto||'—'}</td>
+          <td>${h.anexoPath?`<a href="${h.anexoPath.startsWith('http')?h.anexoPath:apiOrigin()+h.anexoPath}" target="_blank">Ver PDF</a>`:'—'}</td>
+        </tr>`).join('')}
+    </tbody></table>`;
+}
+
+/* ============================================================
+   TAB: NR-1 (Gestão de Riscos Psicossociais)
+   ============================================================ */
+async function renderNr1(){
+  const podeGerenciar = PERFIL==='coordenador' || PERFIL==='admin';
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>NR-1 — Gestão de Riscos Psicossociais</h1><p>Ações, treinamentos e participação (com abono automático de horas)</p></div></div>
+    ${podeGerenciar ? `
+    <div class="card">
+      <h3>Nova ação</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        <div class="field"><label>Título</label><input id="nr1-titulo"></div>
+        <div class="field"><label>Tipo</label>
+          <select id="nr1-tipo">
+            <option value="treinamento">Treinamento</option>
+            <option value="palestra">Palestra</option>
+            <option value="ginastica_laboral">Ginástica laboral</option>
+            <option value="avaliacao_risco">Avaliação de risco</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="field"><label>Data de realização</label><input type="date" id="nr1-data"></div>
+        <div class="field"><label>Carga horária (min)</label><input type="number" id="nr1-carga" value="60"></div>
+      </div>
+      <div class="grid cols-2" style="margin-bottom:12px;">
+        <div class="field"><label>Descrição</label><input id="nr1-desc"></div>
+        <div class="field"><label>Material/lista de presença (opcional)</label><input type="file" accept="application/pdf,image/*" id="nr1-anexo"></div>
+      </div>
+      <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:12px;"><input type="checkbox" id="nr1-abono" checked style="width:auto;"> Gera abono de horas para os participantes</label>
+      <div id="nr1-msg"></div>
+      <button class="btn gold" id="btn-nr1-add">+ Criar ação</button>
+    </div>` : ''}
+    <div class="card"><h3>Ações realizadas</h3><div id="nr1-lista"><div class="loading">Carregando...</div></div></div>
+  `;
+  main.appendChild(wrap);
+
+  if(podeGerenciar) document.getElementById('btn-nr1-add').addEventListener('click', async ()=>{
+    const titulo = document.getElementById('nr1-titulo').value.trim();
+    if(!titulo){ showMsg('nr1-msg','Informe o título.','err'); return; }
+    const fd = new FormData();
+    fd.append('titulo', titulo);
+    fd.append('tipo', document.getElementById('nr1-tipo').value);
+    fd.append('dataRealizacao', document.getElementById('nr1-data').value);
+    fd.append('cargaHorariaMin', document.getElementById('nr1-carga').value);
+    fd.append('descricao', document.getElementById('nr1-desc').value);
+    fd.append('geraAbono', document.getElementById('nr1-abono').checked);
+    const arq = document.getElementById('nr1-anexo').files[0];
+    if(arq) fd.append('anexo', arq);
+    try{
+      await apiFetch('/nr1/acoes', { method:'POST', body: fd });
+      showMsg('nr1-msg','Ação criada.','ok');
+      document.getElementById('nr1-titulo').value='';
+      carregarAcoesNr1();
+    }catch(err){ showMsg('nr1-msg', err.message, 'err'); }
+  });
+
+  await carregarAcoesNr1();
+}
+async function carregarAcoesNr1(){
+  const cont = document.getElementById('nr1-lista');
+  if(!cont) return;
+  let lista;
+  try{ lista = await apiFetch('/nr1/acoes'); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  const rotuloTipo = { treinamento:'Treinamento', palestra:'Palestra', ginastica_laboral:'Ginástica laboral', avaliacao_risco:'Avaliação de risco', outro:'Outro' };
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhuma ação registrada ainda.</div>` :
+    lista.map(a=>`
+      <div class="card" style="margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <strong>${a.titulo}</strong>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px;">${rotuloTipo[a.tipo]||a.tipo} · ${a.dataRealizacao} · ${a.cargaHorariaMin} min ${a.geraAbono?'· <span class="badge green" style="padding:1px 6px;">gera abono</span>':''}</div>
+            ${a.descricao?`<div style="font-size:13px; margin-top:6px;">${a.descricao}</div>`:''}
+          </div>
+          <button class="btn sm ghost" data-participantes="${a.id}">Participantes</button>
+        </div>
+        <div id="nr1-part-${a.id}" style="margin-top:10px;"></div>
+      </div>
+    `).join('');
+  cont.querySelectorAll('[data-participantes]').forEach(b=>b.addEventListener('click', ()=>abrirParticipantesNr1(b.dataset.participantes)));
+}
+async function abrirParticipantesNr1(acaoId){
+  const cont = document.getElementById(`nr1-part-${acaoId}`);
+  if(cont.dataset.aberto === '1'){ cont.innerHTML=''; cont.dataset.aberto='0'; return; }
+  cont.dataset.aberto = '1';
+  cont.innerHTML = `
+    <div style="border-top:1px solid var(--line); padding-top:10px; display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+      <div class="field" style="width:220px;"><label>Colaborador</label><select id="nr1-part-colab-${acaoId}">${colaboradoresCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>
+      <div class="field" style="width:120px;"><label>Horas abonadas</label><input type="number" step="0.5" id="nr1-part-horas-${acaoId}" value="1"></div>
+      <button class="btn sm gold" data-registrar="${acaoId}">Registrar presença</button>
+    </div>
+    <div id="nr1-part-lista-${acaoId}" style="margin-top:10px;"></div>
+  `;
+  cont.querySelector(`[data-registrar="${acaoId}"]`).addEventListener('click', async ()=>{
+    const colaboradorId = document.getElementById(`nr1-part-colab-${acaoId}`).value;
+    const horasAbonadas = document.getElementById(`nr1-part-horas-${acaoId}`).value;
+    try{
+      await apiFetch(`/nr1/acoes/${acaoId}/participantes`, { method:'POST', body: JSON.stringify({ colaboradorId, presente:true, horasAbonadas: Number(horasAbonadas) }) });
+      carregarParticipantesNr1(acaoId);
+    }catch(err){ alert(err.message); }
+  });
+  carregarParticipantesNr1(acaoId);
+}
+async function carregarParticipantesNr1(acaoId){
+  const el = document.getElementById(`nr1-part-lista-${acaoId}`);
+  if(!el) return;
+  const lista = await apiFetch(`/nr1/acoes/${acaoId}/participantes`);
+  el.innerHTML = lista.length===0 ? `<div class="empty">Ninguém registrado ainda.</div>` :
+    `<table><thead><tr><th>Colaborador</th><th>Horas abonadas</th><th>Abono gerado</th></tr></thead><tbody>
+      ${lista.map(p=>`<tr><td>${p.Colaborador?p.Colaborador.nome:'—'}</td><td class="nums">${p.horasAbonadas}h</td><td>${p.abonoId?'<span class="badge green" style="padding:1px 6px;">sim</span>':'—'}</td></tr>`).join('')}
+    </tbody></table>`;
+}
+
+/* ============================================================
+   TAB: SOLICITAÇÕES DE EPI
+   ============================================================ */
+async function renderEpi(){
+  const podeGerenciar = PERFIL==='coordenador' || PERFIL==='admin';
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title"><div><h1>Solicitações de EPI</h1><p>Equipamento de Proteção Individual — pedido e entrega por colaborador</p></div></div>
+    <div class="card">
+      <h3>Nova solicitação</h3>
+      <div class="grid cols-4" style="margin-bottom:12px;">
+        ${podeGerenciar ? `<div class="field"><label>Colaborador</label><select id="epi-colab">${colaboradoresCache.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select></div>` : ''}
+        <div class="field"><label>Item</label><input id="epi-item" placeholder="Capacete, luva, óculos..."></div>
+        <div class="field"><label>Quantidade</label><input type="number" id="epi-qtd" value="1" min="1"></div>
+        <div class="field"><label>Motivo</label>
+          <select id="epi-motivo">
+            <option value="primeira_entrega">Primeira entrega</option>
+            <option value="reposicao">Reposição</option>
+            <option value="danificado">Danificado</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div id="epi-msg"></div>
+      <button class="btn gold" id="btn-epi-add">+ Solicitar EPI</button>
+    </div>
+    <div class="card"><h3>Solicitações</h3><div id="epi-lista"><div class="loading">Carregando...</div></div></div>
+  `;
+  main.appendChild(wrap);
+
+  document.getElementById('btn-epi-add').addEventListener('click', async ()=>{
+    const item = document.getElementById('epi-item').value.trim();
+    if(!item){ showMsg('epi-msg','Informe o item.','err'); return; }
+    const fd = new FormData();
+    if(podeGerenciar) fd.append('colaboradorId', document.getElementById('epi-colab').value);
+    fd.append('item', item);
+    fd.append('quantidade', document.getElementById('epi-qtd').value);
+    fd.append('motivo', document.getElementById('epi-motivo').value);
+    fd.append('dataSolicitacao', new Date().toISOString().slice(0,10));
+    try{
+      await apiFetch('/epi', { method:'POST', body: fd });
+      showMsg('epi-msg','Solicitação enviada.','ok');
+      document.getElementById('epi-item').value='';
+      carregarEpi();
+    }catch(err){ showMsg('epi-msg', err.message, 'err'); }
+  });
+
+  await carregarEpi();
+}
+async function carregarEpi(){
+  const cont = document.getElementById('epi-lista');
+  if(!cont) return;
+  const podeGerenciar = PERFIL==='coordenador' || PERFIL==='admin';
+  let lista;
+  try{ lista = await apiFetch('/epi'); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  const nomeColab = id => (colaboradoresCache.find(c=>c.id===id)||{}).nome || '—';
+  const corStatus = { pendente:'amber', entregue:'green', cancelado:'red' };
+  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhuma solicitação.</div>` :
+    `<table><thead><tr><th>Colaborador</th><th>Item</th><th>Qtd.</th><th>Solicitado</th><th>Status</th>${podeGerenciar?'<th>Ação</th>':''}</tr></thead><tbody>
+      ${lista.map(e=>`
+        <tr>
+          <td>${PERFIL==='colaborador'?'Você':nomeColab(e.colaboradorId)}</td>
+          <td>${e.item}</td>
+          <td class="nums">${e.quantidade}</td>
+          <td class="nums">${e.dataSolicitacao}</td>
+          <td><span class="badge ${corStatus[e.status]||'gray'}">${e.status}</span></td>
+          ${podeGerenciar ? `<td>${e.status==='pendente'?`<button class="btn sm gold" data-entregar="${e.id}">Marcar entregue</button>`:''}</td>` : ''}
+        </tr>`).join('')}
+    </tbody></table>`;
+  if(podeGerenciar) cont.querySelectorAll('[data-entregar]').forEach(b=>b.addEventListener('click', async ()=>{
+    try{
+      await apiFetch(`/epi/${b.dataset.entregar}`, { method:'PUT', body: JSON.stringify({ status:'entregue', dataEntrega: new Date().toISOString().slice(0,10) }) });
+      carregarEpi();
+    }catch(err){ alert(err.message); }
+  }));
 }
 
 /* ============================================================

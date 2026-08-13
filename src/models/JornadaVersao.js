@@ -21,6 +21,19 @@ const JornadaVersao = sequelize.define('JornadaVersao', {
   },
   vigenciaInicio: { type: DataTypes.DATEONLY, allowNull: false },
   vigenciaFim: { type: DataTypes.DATEONLY, allowNull: true }, // null = vigente
+  tipoEscala: { type: DataTypes.STRING, allowNull: false, defaultValue: 'semanal' }, // 'semanal' | 'ciclica'
+  ciclo: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    get() {
+      const raw = this.getDataValue('ciclo');
+      return raw ? JSON.parse(raw) : null;
+    },
+    set(value) {
+      this.setDataValue('ciclo', value ? JSON.stringify(value) : null);
+    },
+  },
+  dataReferenciaCiclo: { type: DataTypes.DATEONLY, allowNull: true },
 }, {
   tableName: 'jornada_versoes',
 });

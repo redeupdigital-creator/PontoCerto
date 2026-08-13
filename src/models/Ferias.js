@@ -10,6 +10,7 @@ const Ferias = sequelize.define('Ferias', {
   dataFimGozo: { type: DataTypes.DATEONLY, allowNull: false },
   diasAbonoPecuniario: { type: DataTypes.INTEGER, defaultValue: 0 },
   status: { type: DataTypes.STRING, defaultValue: 'programada' }, // programada | em_curso | concluida
+  anexoPath: DataTypes.STRING, // recibo de férias
 }, {
   tableName: 'ferias',
 });
