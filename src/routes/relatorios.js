@@ -1,7 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
 const { Colaborador, Ferias, Atestado, Ocorrencia, ColaboradorDesligamento, EpiSolicitacao } = require('../models');
-const { calcularMes } = require('../services/calculo');
+const { calcularMes, calcularIndicadoresEmpresa } = require('../services/calculo');
 const { autenticar, permitir } = require('../middleware/auth');
 const { gerarXlsx, gerarPdf } = require('../services/exportacao');
 const { idsColaboradoresDaEmpresa } = require('../utils/empresa');
@@ -306,6 +306,74 @@ router.get('/desligamentos', async (req, res) => {
 router.get('/epi', async (req, res) => {
   const r = await linhasEpi(req);
   res.json(r.linhas);
+});
+
+// Indicadores de RH agregados: assiduidade, absenteísmo, pontualidade,
+// horas extras/noturnas, e ranking de quem mais faltou/atrasou no mês —
+// tudo calculado em cima de calcularMes() por colaborador, com comparação
+// real ao mês anterior (não uma variação inventada).
+router.get('/indicadores', async (req, res) => {
+  const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+  const [anoNum, mesNum] = mes.split('-').map(Number);
+  if (!anoNum || !mesNum) return res.status(400).json({ erro: 'Informe mes (YYYY-MM)' });
+
+  const anoAnterior = mesNum === 1 ? anoNum - 1 : anoNum;
+  const mesAnterior = mesNum === 1 ? 12 : mesNum - 1;
+
+  const colaboradores = await Colaborador.findAll({ where: { empresaId: req.usuario.empresaId, status: 'ativo' } });
+  const [atual, anterior] = await Promise.all([
+    calcularIndicadoresEmpresa(colaboradores, anoNum, mesNum),
+    calcularIndicadoresEmpresa(colaboradores, anoAnterior, mesAnterior),
+  ]);
+
+  res.json({
+    mes,
+    mesAnteriorRef: `${anoAnterior}-${String(mesAnterior).padStart(2, '0')}`,
+    atual,
+    anterior,
+    variacao: {
+      taxaAssiduidade: Number((atual.taxaAssiduidade - anterior.taxaAssiduidade).toFixed(1)),
+      taxaPontualidade: Number((atual.taxaPontualidade - anterior.taxaPontualidade).toFixed(1)),
+      totalFaltas: atual.totalFaltas - anterior.totalFaltas,
+      totalDiasComAtraso: atual.totalDiasComAtraso - anterior.totalDiasComAtraso,
+    },
+  });
+});
+
+// Série histórica dos últimos N meses (padrão 6), pro gráfico de evolução
+// da tela de Indicadores — mesmo cálculo de calcularIndicadoresEmpresa,
+// repetido mês a mês (o cache de calcularMes evita reprocessar dias já
+// calculados noutra requisição recente).
+router.get('/indicadores-historico', async (req, res) => {
+  const qtdMeses = Math.min(Math.max(parseInt(req.query.meses, 10) || 6, 2), 12);
+  const referencia = req.query.mes || new Date().toISOString().slice(0, 7);
+  const [anoRef, mesRef] = referencia.split('-').map(Number);
+  if (!anoRef || !mesRef) return res.status(400).json({ erro: 'Informe mes (YYYY-MM)' });
+
+  const colaboradores = await Colaborador.findAll({ where: { empresaId: req.usuario.empresaId, status: 'ativo' } });
+
+  const meses = [];
+  for (let i = qtdMeses - 1; i >= 0; i -= 1) {
+    let ano = anoRef;
+    let mesN = mesRef - i;
+    while (mesN <= 0) { mesN += 12; ano -= 1; }
+    meses.push({ ano, mesN });
+  }
+
+  const serie = [];
+  for (const { ano, mesN } of meses) {
+    // eslint-disable-next-line no-await-in-loop
+    const ind = await calcularIndicadoresEmpresa(colaboradores, ano, mesN);
+    serie.push({
+      mes: `${ano}-${String(mesN).padStart(2, '0')}`,
+      taxaAssiduidade: ind.taxaAssiduidade,
+      taxaPontualidade: ind.taxaPontualidade,
+      totalFaltas: ind.totalFaltas,
+      totalDiasComAtraso: ind.totalDiasComAtraso,
+    });
+  }
+
+  res.json({ serie });
 });
 
 // ---- Rota de exportação: GET /api/relatorios/:tipo/exportar?formato=xlsx|pdf&mes=... ----

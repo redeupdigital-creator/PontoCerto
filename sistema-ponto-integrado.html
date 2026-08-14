@@ -69,13 +69,22 @@
 
   .fl-label{ display:block; font-size:12px; color:var(--fos-muted); margin:0 0 6px; font-weight:500; }
   .fl-input-wrap{ position:relative; margin-bottom:18px; }
-  .fl-input-wrap input{
+  .fl-input-wrap input, .fl-input-wrap select{
     width:100%; padding:12px 14px 12px 40px; border:1px solid var(--fos-border); border-radius:10px;
-    background:rgba(255,255,255,.03); color:#fff; font-size:14px; font-family:inherit; transition:border-color .15s;
+    background:rgba(255,255,255,.03); color:#fff; font-size:14px; font-family:inherit; transition:border-color .15s, box-shadow .15s;
   }
   .fl-input-wrap input::placeholder{ color:#5B6472; }
-  .fl-input-wrap input:focus{ outline:none; border-color:var(--fos-cyan); }
-  .fl-icon{ position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:14px; opacity:.75; }
+  .fl-input-wrap input:focus, .fl-input-wrap select:focus{
+    outline:none; border-color:var(--fos-cyan); box-shadow:0 0 0 3px rgba(34,211,238,.15);
+  }
+  .fl-input-wrap select{
+    appearance:none; -webkit-appearance:none; cursor:pointer; padding-right:38px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2393A3BE' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 15px center;
+  }
+  .fl-input-wrap select:hover{ border-color:rgba(34,211,238,.4); }
+  .fl-input-wrap select option{ background:#12151F; color:#fff; }
+  .fl-icon{ position:absolute; left:13px; top:50%; transform:translateY(-50%); font-size:14px; opacity:.75; pointer-events:none; }
   .fl-input-wrap .toggle-pass{ position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--fos-muted); cursor:pointer; padding:6px; font-size:14px; }
   .fl-input-wrap .toggle-pass:hover{ color:#fff; }
 
@@ -110,7 +119,8 @@
   #login-screen.tema-claro .login-visual{ color:#1F2937; }
   #login-screen.tema-claro .login-card{ box-shadow:0 20px 50px rgba(15,23,42,.1); }
   #login-screen.tema-claro .login-card h2{ color:#0F172A; }
-  #login-screen.tema-claro .fl-input-wrap input{ background:#fff; color:#0F172A; }
+  #login-screen.tema-claro .fl-input-wrap input, #login-screen.tema-claro .fl-input-wrap select{ background:#fff; color:#0F172A; }
+  #login-screen.tema-claro .fl-input-wrap select option{ background:#fff; color:#0F172A; }
   #login-screen.tema-claro .lv-card{ background:rgba(255,255,255,.85); }
   #login-screen.tema-claro .lv-card-value{ color:#0F172A; }
   #login-screen.tema-claro .btn-tema{ background:rgba(15,23,42,.06); border-color:rgba(15,23,42,.12); color:#0F172A; }
@@ -127,39 +137,193 @@
   #app.visible{display:flex;}
   nav.sidebar{
     width:236px; flex-shrink:0; display:flex; flex-direction:column; padding:20px 0; color:#fff;
-    position:relative; overflow-y:auto; overflow-x:hidden;
+    position:relative; overflow-y:auto; overflow-x:hidden; transition:width .18s ease;
     background:
       radial-gradient(circle, rgba(255,255,255,.05) 1px, transparent 1px) 0 0/20px 20px,
       linear-gradient(165deg, var(--navy-dark) 0%, var(--navy-deep) 55%, var(--navy-black) 100%);
     box-shadow: 2px 0 24px rgba(0,0,0,.18);
   }
+  nav.sidebar.collapsed{width:68px;}
   nav.sidebar .brand{
     padding:0 20px 18px; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,.1);
     display:flex; align-items:center; gap:10px;
   }
+  nav.sidebar.collapsed .brand{padding:0 0 18px; justify-content:center;}
   nav.sidebar .brand-icon{
     width:32px; height:32px; flex-shrink:0; border:1.5px solid var(--teal); border-radius:9px;
     display:flex; align-items:center; justify-content:center; color:var(--teal); font-size:15px; font-weight:700;
   }
   nav.sidebar .brand-text{font-size:16px; font-weight:700; letter-spacing:.3px; line-height:1.2;}
   nav.sidebar .brand small{display:block; font-family:'IBM Plex Mono'; font-weight:500; font-size:9.5px; color:#93A3BE; letter-spacing:.6px; margin-top:2px;}
+  nav.sidebar.collapsed .brand-text, nav.sidebar.collapsed .nav-group-label, nav.sidebar.collapsed .nav-btn-label,
+  nav.sidebar.collapsed .userbox .who, nav.sidebar.collapsed #empresa-label, nav.sidebar.collapsed .userbox button .txt{display:none;}
   nav.sidebar button{
     position:relative; background:none; border:none; color:#B7C2D6; text-align:left; padding:10.5px 20px 10.5px 17px;
     font-size:13.5px; cursor:pointer; border-left:3px solid transparent; font-family:'IBM Plex Sans';
     display:flex; align-items:center; gap:10px; width:100%; transition:background .15s, color .15s;
   }
+  nav.sidebar.collapsed button{padding:11px 0; justify-content:center; border-left:none;}
+  nav.sidebar.collapsed button.active{border-left:none; border-radius:8px; margin:0 10px; width:calc(100% - 20px);}
   nav.sidebar button:hover{background:rgba(255,255,255,.05); color:#fff;}
   nav.sidebar button.active{
     background:linear-gradient(90deg, rgba(34,211,238,.14) 0%, rgba(139,92,246,.05) 100%);
     color:#fff; border-left-color:var(--cyan); font-weight:600;
   }
   nav.sidebar .icon{width:18px; text-align:center; font-size:14px; flex-shrink:0;}
+  nav.sidebar .nav-group{margin-bottom:4px;}
+  nav.sidebar .nav-group-label{
+    padding:14px 20px 6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+    color:#5B6C8A;
+  }
+  nav.sidebar .nav-group[data-group="utilitarios"]{border-top:1px solid rgba(255,255,255,.1); margin-top:6px; padding-top:6px;}
   nav.sidebar .userbox{margin-top:auto; padding:14px 20px 0; border-top:1px solid rgba(255,255,255,.1);}
+  nav.sidebar.collapsed .userbox{padding:14px 0 0; text-align:center;}
   nav.sidebar .userbox .who{font-size:11.5px; color:#93A3BE; font-family:'IBM Plex Mono';}
   nav.sidebar .userbox button{padding:8px 0; color:var(--teal); font-size:12px; border:none;}
+  nav.sidebar.collapsed .userbox button{text-align:center;}
+  nav.sidebar.collapsed .userbox button .icon-collapsed{display:inline!important; font-size:15px;}
+
+  /* Botão de recolher/expandir a sidebar */
+  #btn-toggle-sidebar{
+    position:absolute; top:18px; right:-11px; width:22px; height:22px; border-radius:50%; background:var(--navy-dark);
+    border:1.5px solid rgba(255,255,255,.18); color:#B7C2D6; font-size:10px; cursor:pointer; z-index:30;
+    display:flex; align-items:center; justify-content:center; transition:transform .18s, background .15s;
+  }
+  #btn-toggle-sidebar:hover{background:var(--navy-deep); color:#fff;}
+  nav.sidebar.collapsed #btn-toggle-sidebar{transform:rotate(180deg);}
+
+  /* Tooltip customizado quando a sidebar está recolhida */
+  nav.sidebar.collapsed button[data-tooltip]{position:relative;}
+  nav.sidebar.collapsed button[data-tooltip]:hover::after{
+    content:attr(data-tooltip); position:absolute; left:calc(100% + 10px); top:50%; transform:translateY(-50%);
+    background:#12151F; color:#fff; padding:6px 11px; border-radius:7px; font-size:12px; white-space:nowrap;
+    box-shadow:0 6px 16px rgba(0,0,0,.3); z-index:40; pointer-events:none; font-weight:500;
+  }
+  nav.sidebar.collapsed .brand:hover::after{
+    content:'PontoCerto'; position:absolute; left:calc(100% + 10px); top:20px;
+    background:#12151F; color:#fff; padding:6px 11px; border-radius:7px; font-size:12px; white-space:nowrap;
+    box-shadow:0 6px 16px rgba(0,0,0,.3); z-index:40; font-weight:600;
+  }
 
   main{flex:1; padding:28px 34px; max-width:1180px;}
   .page-title{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px;}
+
+  /* ---------- Cabeçalho do dashboard (saudação + busca + ações) ---------- */
+  .dash-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; gap:20px; flex-wrap:wrap;}
+  .dash-header h1{margin:0; font-size:23px; color:var(--navy-dark);}
+  .dash-header p{margin:3px 0 0; color:var(--muted); font-size:13px;}
+  .dash-header-actions{display:flex; align-items:center; gap:10px;}
+  .dash-search{
+    display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:9px 14px; min-width:280px; transition:border-color .15s, box-shadow .15s;
+  }
+  .dash-search:focus-within{border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,.12);}
+  .dash-search input{border:none; outline:none; font-size:13.5px; width:100%; background:none; color:var(--text); font-family:inherit;}
+  .dash-search input::placeholder{color:#9AA3B0;}
+  .busca-dropdown{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; background:#fff; border:1px solid var(--line);
+    border-radius:12px; box-shadow:0 14px 32px rgba(16,24,40,.14); z-index:50; max-height:340px; overflow-y:auto; padding:6px;
+  }
+  .busca-dropdown-item{
+    display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border:none; background:none;
+    border-radius:8px; cursor:pointer; font-family:inherit; text-align:left;
+  }
+  .busca-dropdown-item:hover{background:#F7F8FA;}
+  .busca-dropdown-vazio{padding:14px; font-size:12.5px; color:var(--muted); text-align:center;}
+  .perfil-link{cursor:pointer;}
+  .perfil-link:hover{color:var(--cyan); text-decoration:underline;}
+  .dash-icon-btn{
+    position:relative; width:38px; height:38px; border-radius:10px; border:1px solid var(--line); background:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer; color:var(--text);
+    flex-shrink:0; transition:background .15s, border-color .15s;
+  }
+  .dash-icon-btn:hover{background:#F7F8FA; border-color:#C7CDD6;}
+  .dash-icon-btn .dash-badge{
+    position:absolute; top:-5px; right:-5px; background:var(--red); color:#fff; font-size:10px; font-weight:700;
+    min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 3px;
+    border:2px solid var(--bg);
+  }
+  .dash-avatar-btn{width:38px; height:38px; border-radius:10px; overflow:hidden; border:1px solid var(--line); flex-shrink:0; position:relative; cursor:pointer;}
+  .dash-avatar-btn img{width:100%; height:100%; object-fit:cover; display:block;}
+  .dash-avatar-btn .dash-avatar-fallback{
+    width:100%; height:100%; background:linear-gradient(135deg, var(--cyan), var(--purple)); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+  }
+  .dash-avatar-btn .dash-online-dot{position:absolute; bottom:-1px; right:-1px; width:10px; height:10px; border-radius:50%; background:var(--green); border:2px solid #fff;}
+
+  /* ---------- Stat cards: barra de progresso ---------- */
+  .stat-progress{height:4px; border-radius:2px; background:#EDEEF0; margin-top:12px; overflow:hidden;}
+  .stat-progress-fill{height:100%; border-radius:2px; background:var(--stat-accent, var(--muted)); transition:width .4s ease;}
+
+  /* ---------- Layout de 3 colunas do Painel ao Vivo ---------- */
+  .dash-layout{display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start;}
+  @media (max-width:1180px){ .dash-layout{grid-template-columns:1fr;} }
+
+  /* ---------- Tabela "Status da Equipe": avatar + matrícula + menu ---------- */
+  .team-row-person{display:flex; align-items:center; gap:10px;}
+  .team-avatar{width:34px; height:34px; border-radius:50%; overflow:hidden; flex-shrink:0; position:relative; background:#EDEEF0;}
+  .team-avatar img{width:100%; height:100%; object-fit:cover; display:block;}
+  .team-avatar .team-avatar-fallback{width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--muted); background:#EDEEF0;}
+  .team-avatar .team-status-dot{position:absolute; bottom:0; right:0; width:9px; height:9px; border-radius:50%; border:2px solid #fff;}
+  .team-row-person .matricula{font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace;}
+  .row-menu-btn{background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:4px 8px; border-radius:6px;}
+  .row-menu-btn:hover{background:#F0F1F3;}
+  .row-menu-dropdown{
+    position:absolute; right:0; top:calc(100% + 4px); background:#fff; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 10px 26px rgba(16,24,40,.14); min-width:170px; z-index:20; overflow:hidden;
+  }
+  .row-menu-dropdown button{
+    display:block; width:100%; text-align:left; padding:9px 14px; background:none; border:none; font-size:12.5px;
+    color:var(--text); cursor:pointer; font-family:inherit;
+  }
+  .row-menu-dropdown button:hover{background:#F7F8FA;}
+
+  /* ---------- Painéis da coluna direita ---------- */
+  .side-panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:20px; box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .side-panel-head{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; gap:10px;}
+  .side-panel-head h3{margin:0; font-size:14.5px; color:var(--navy-dark); font-weight:700;}
+  .side-panel-head p{margin:2px 0 0; font-size:11.5px; color:var(--muted);}
+  .side-panel-link{font-size:12px; color:var(--cyan); text-decoration:none; font-weight:600; white-space:nowrap; cursor:pointer;}
+  .side-panel-link:hover{text-decoration:underline;}
+  .side-panel-foot{margin-top:12px; text-align:right;}
+
+  .notif-item{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line);}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-icon{width:34px; height:34px; border-radius:10px; background:var(--red-bg); color:var(--red); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;}
+  .notif-body{flex:1; min-width:0;}
+  .notif-body .notif-title{font-size:12.5px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .notif-body .notif-msg{font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.4;}
+  .notif-time{font-size:10.5px; color:var(--muted); white-space:nowrap; text-align:right; flex-shrink:0;}
+  .notif-badge-new{background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:1px 6px; border-radius:8px; text-transform:uppercase;}
+
+  /* ---------- Tela de Notificações (cards + filtros) ---------- */
+  .notif-filtros{display:flex; gap:8px; margin-bottom:16px;}
+  .notif-filtro-btn{
+    background:#fff; border:1px solid var(--line); border-radius:20px; padding:7px 16px; font-size:12.5px; font-weight:600;
+    color:var(--muted); cursor:pointer; font-family:inherit; transition:all .15s;
+  }
+  .notif-filtro-btn:hover{border-color:#C7CDD6;}
+  .notif-filtro-btn.active{background:var(--navy-dark); color:#fff; border-color:var(--navy-dark);}
+  .notif-card{
+    display:flex; gap:14px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px;
+    margin-bottom:10px; box-shadow:0 1px 2px rgba(16,24,40,.04);
+  }
+  .notif-card.notif-lida{opacity:.6;}
+  .notif-card .notif-icon{width:38px; height:38px; font-size:16px;}
+  .notif-card .notif-title{font-size:13.5px;}
+  .notif-card .notif-msg{font-size:12.5px;}
+
+  .nr1-mini-field label{font-size:11px; color:var(--muted); margin-bottom:4px; display:block; font-weight:500;}
+  .nr1-mini-field input, .nr1-mini-field select, .nr1-mini-field textarea{
+    width:100%; padding:8px 10px; border:1.5px solid var(--line); border-radius:8px; font-size:12.5px; font-family:inherit; margin-bottom:10px;
+  }
+  .nr1-mini-field input:focus, .nr1-mini-field select:focus{outline:none; border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,.12);}
+  .toggle-switch{position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0;}
+  .toggle-switch input{opacity:0; width:0; height:0;}
+  .toggle-switch .slider{position:absolute; inset:0; background:#D7DBE0; border-radius:20px; cursor:pointer; transition:.15s;}
+  .toggle-switch .slider::before{content:''; position:absolute; width:14px; height:14px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s;}
+  .toggle-switch input:checked + .slider{background:linear-gradient(90deg, var(--cyan), var(--purple));}
+  .toggle-switch input:checked + .slider::before{transform:translateX(16px);}
   .page-title h1{font-size:21px; margin:0; color:var(--navy-dark);}
   .page-title p{margin:2px 0 0; color:var(--muted); font-size:13px;}
 
@@ -207,16 +371,47 @@
 
   /* ---------- Stat cards (Painel ao Vivo) ---------- */
   .stat-card{
-    background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px;
-    text-align:center; box-shadow:0 1px 2px rgba(16,24,40,.04); transition:transform .15s, box-shadow .15s;
+    background:#fff; border:1px solid var(--line); border-left:3px solid var(--stat-accent, var(--line));
+    border-radius:10px; padding:16px 18px; box-shadow:0 1px 2px rgba(16,24,40,.04);
+    transition:transform .15s, box-shadow .15s; position:relative; overflow:hidden;
   }
-  .stat-card:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(16,24,40,.08);}
+  .stat-card:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(16,24,40,.09);}
+  .stat-card.stat-alert{background:linear-gradient(180deg, rgba(185,28,28,.04) 0%, #fff 60%);}
+  .stat-card-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+  .stat-label{
+    font-size:10.5px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    line-height:1.3; max-width:calc(100% - 40px);
+  }
   .stat-icon{
-    width:38px; height:38px; border-radius:11px; margin:0 auto 8px; font-size:17px;
+    width:30px; height:30px; border-radius:9px; font-size:14px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
   }
-  .stat-num{font-size:25px; font-weight:700; color:var(--navy-dark); line-height:1.1;}
-  .stat-label{font-size:11px; color:var(--muted); margin-top:4px; font-weight:500;}
+  .stat-num{font-size:30px; font-weight:800; color:var(--navy-dark); line-height:1; margin-top:12px; letter-spacing:-.5px;}
+  .stat-foot{display:flex; align-items:center; gap:5px; margin-top:6px; font-size:11px; color:var(--muted); font-weight:500;}
+  .stat-dot{width:6px; height:6px; border-radius:50%; background:var(--stat-accent, var(--muted)); flex-shrink:0;}
+
+  /* ---------- Central de Pendências ---------- */
+  .pendencias-strip{margin-bottom:20px;}
+  .pendencias-titulo{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:10px;}
+  .pendencias-itens{display:flex; gap:10px; flex-wrap:wrap;}
+  .pendencia-item{
+    display:flex; align-items:center; gap:9px; background:#fff; border:1px solid var(--line); border-left:3px solid var(--pend-cor);
+    border-radius:10px; padding:10px 16px; cursor:pointer; font-family:inherit; box-shadow:0 1px 2px rgba(16,24,40,.04);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .pendencia-item:hover{transform:translateY(-2px); box-shadow:0 8px 18px rgba(16,24,40,.08);}
+  .pendencia-num{font-size:16px; font-weight:800; color:var(--pend-cor); font-family:'IBM Plex Mono',monospace;}
+  .pendencia-texto{font-size:12.5px; color:var(--text); font-weight:500; text-align:left;}
+  .pendencias-vazio{
+    background:var(--green-bg); border:1px solid #BBE8C8; color:var(--green); border-radius:10px;
+    padding:14px 18px; font-size:13.5px; margin-bottom:20px;
+  }
+
+  /* ---------- Indicadores de RH: badges de tendência ---------- */
+  .trend-badge{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px;}
+  .trend-bom{background:var(--green-bg); color:var(--green);}
+  .trend-ruim{background:var(--red-bg); color:var(--red);}
+  .trend-neutro{background:#EDEEF0; color:var(--muted);}
 
   /* ---------- Modal ---------- */
   .modal-overlay{
@@ -237,7 +432,18 @@
   .tabs-sub button.active{color:var(--navy-dark); border-color:var(--cyan); font-weight:600;}
 
   .empty{color:var(--muted); font-size:13px; padding:18px 0; text-align:center;}
-  .loading{color:var(--muted); font-size:13px; padding:18px 0; text-align:center;}
+  .loading{color:var(--muted); font-size:13px; padding:18px 0; text-align:center; animation:pulse-opacity 1.4s ease-in-out infinite;}
+  @keyframes pulse-opacity{0%,100%{opacity:.45;} 50%{opacity:1;}}
+
+  /* ---------- Design System: Skeleton (placeholder de carregamento com o
+     formato real do conteúdo, não só texto "Carregando...") ---------- */
+  .skeleton{background:linear-gradient(90deg, #EDEEF0 25%, #F7F8FA 37%, #EDEEF0 63%); background-size:400% 100%; animation:skeleton-sweep 1.4s ease infinite; border-radius:6px;}
+  @keyframes skeleton-sweep{0%{background-position:100% 50%;} 100%{background-position:0 50%;}}
+  .skeleton-card{height:104px; border-radius:10px;}
+  .skeleton-line{height:13px; margin-bottom:8px;}
+  .skeleton-line.w-60{width:60%;} .skeleton-line.w-40{width:40%;} .skeleton-line.w-80{width:80%;}
+  .skeleton-row{display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .skeleton-avatar{width:34px; height:34px; border-radius:50%; flex-shrink:0;}
   .totals-row td{font-weight:700; background:#F7F5EF; border-top:2px solid var(--navy);}
 
   #cartao-preview{background:#fff; border:1px solid var(--line); padding:0;}
@@ -382,29 +588,55 @@
 
 <div id="app">
   <nav class="sidebar">
+    <button id="btn-toggle-sidebar" title="Recolher menu">◀</button>
     <div class="brand"><div class="brand-icon">✓</div><div class="brand-text">PontoCerto<small>MÓDULO DE CONTROLE</small></div></div>
     <div id="empresa-label" style="padding:0 20px 14px; margin-top:-6px; font-size:12px; font-weight:600; color:#22D3EE; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:8px; padding-bottom:14px;"></div>
-    <button data-tab="painel" class="active"><span class="icon">🟢</span> Painel ao Vivo</button>
-    <button data-tab="empresas"><span class="icon">🏢</span> Empresas</button>
-    <button data-tab="colaboradores"><span class="icon">👥</span> Colaboradores</button>
-    <button data-tab="ponto"><span class="icon">⏱️</span> Registro de Ponto</button>
-    <button data-tab="abonos"><span class="icon">📝</span> Abono de Batidas</button>
-    <button data-tab="ausencias"><span class="icon">🌴</span> Ausências</button>
-    <button data-tab="folha"><span class="icon">💰</span> Folha de Pagamento</button>
-    <button data-tab="nr1"><span class="icon">🧠</span> NR-1</button>
-    <button data-tab="epi"><span class="icon">🦺</span> Solicitações de EPI</button>
-    <button data-tab="relatorios"><span class="icon">📊</span> Relatórios</button>
-    <button data-tab="cartao"><span class="icon">🪪</span> Cartão de Ponto</button>
-    <button data-tab="config"><span class="icon">🗓️</span> Feriados</button>
-    <button data-tab="etiquetas"><span class="icon">🏷️</span> Etiquetas</button>
-    <button data-tab="usuarios"><span class="icon">🔑</span> Usuários</button>
-    <button data-tab="auditoria"><span class="icon">📜</span> Auditoria</button>
-    <button data-tab="notificacoes"><span class="icon">🔔</span> Notificações <span id="badge-notif" class="badge red" style="display:none; margin-left:4px; padding:1px 6px;"></span></button>
-    <button data-tab="compliance"><span class="icon">⚖️</span> Compliance</button>
-    <button data-tab="conta"><span class="icon">👤</span> Minha Conta</button>
+
+    <div class="nav-group" data-group="principal">
+      <div class="nav-group-label">Principal</div>
+      <button data-tab="painel" class="active"><span class="icon">🟢</span> Painel ao Vivo</button>
+      <button data-tab="colaboradores"><span class="icon">👥</span> Colaboradores</button>
+      <button data-tab="ponto"><span class="icon">⏱️</span> Registro de Ponto</button>
+    </div>
+
+    <div class="nav-group" data-group="rh">
+      <div class="nav-group-label">RH</div>
+      <button data-tab="abonos"><span class="icon">📝</span> Abono de Batidas</button>
+      <button data-tab="ausencias"><span class="icon">🌴</span> Ausências</button>
+      <button data-tab="folha"><span class="icon">💰</span> Folha de Pagamento</button>
+      <button data-tab="cartao"><span class="icon">🪪</span> Cartão de Ponto</button>
+    </div>
+
+    <div class="nav-group" data-group="seguranca">
+      <div class="nav-group-label">Segurança e Compliance</div>
+      <button data-tab="nr1"><span class="icon">🧠</span> NR-1</button>
+      <button data-tab="epi"><span class="icon">🦺</span> Solicitações de EPI</button>
+      <button data-tab="compliance"><span class="icon">⚖️</span> Compliance</button>
+    </div>
+
+    <div class="nav-group" data-group="relatorios">
+      <div class="nav-group-label">Relatórios</div>
+      <button data-tab="relatorios"><span class="icon">📊</span> Relatórios</button>
+      <button data-tab="indicadores"><span class="icon">📈</span> Indicadores</button>
+      <button data-tab="auditoria"><span class="icon">📜</span> Auditoria</button>
+    </div>
+
+    <div class="nav-group" data-group="config">
+      <div class="nav-group-label">Configurações</div>
+      <button data-tab="usuarios"><span class="icon">🔑</span> Usuários</button>
+      <button data-tab="etiquetas"><span class="icon">🏷️</span> Etiquetas</button>
+      <button data-tab="config"><span class="icon">🗓️</span> Feriados</button>
+    </div>
+
+    <div class="nav-group" data-group="utilitarios">
+      <button data-tab="empresas"><span class="icon">🏢</span> Empresas</button>
+      <button data-tab="notificacoes"><span class="icon">🔔</span> Notificações <span id="badge-notif" class="badge red" style="display:none; margin-left:4px; padding:1px 6px;"></span></button>
+      <button data-tab="conta"><span class="icon">👤</span> Minha Conta</button>
+    </div>
+
     <div class="userbox">
       <div class="who" id="who-label"></div>
-      <button id="btn-logout">Sair</button>
+      <button id="btn-logout" title="Sair"><span class="txt">Sair</span><span class="icon-collapsed" style="display:none;">🚪</span></button>
     </div>
   </nav>
   <main id="main"></main>
@@ -420,6 +652,7 @@ let PERFIL = null;
 let MEU_COLABORADOR_ID = null;
 let EMPRESA_ID = null;
 let EMPRESA_NOME = null;
+let MEU_LOGIN = null;
 let SUPER_ADMIN_TOKEN = null;
 let SUPER_ADMIN_LOGIN = null;
 
@@ -430,9 +663,9 @@ let SUPER_ADMIN_LOGIN = null;
 const ABAS_POR_PERFIL = {
   colaborador: ['abonos', 'ausencias', 'cartao', 'config', 'epi', 'folha', 'notificacoes', 'conta'],
   analista: ['colaboradores', 'ponto', 'abonos', 'cartao', 'config', 'notificacoes', 'conta'],
-  coordenador: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'folha', 'nr1', 'epi', 'relatorios', 'cartao', 'config', 'notificacoes', 'conta'],
-  consulta: ['painel', 'colaboradores', 'relatorios', 'cartao', 'ausencias', 'folha', 'nr1', 'epi', 'config', 'notificacoes', 'conta'],
-  admin: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'folha', 'nr1', 'epi', 'relatorios', 'cartao', 'config', 'etiquetas', 'usuarios', 'auditoria', 'compliance', 'notificacoes', 'conta'],
+  coordenador: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'folha', 'nr1', 'epi', 'relatorios', 'indicadores', 'cartao', 'config', 'notificacoes', 'conta'],
+  consulta: ['painel', 'colaboradores', 'relatorios', 'indicadores', 'cartao', 'ausencias', 'folha', 'nr1', 'epi', 'config', 'notificacoes', 'conta'],
+  admin: ['painel', 'colaboradores', 'ponto', 'abonos', 'ausencias', 'folha', 'nr1', 'epi', 'relatorios', 'indicadores', 'cartao', 'config', 'etiquetas', 'usuarios', 'auditoria', 'compliance', 'notificacoes', 'conta'],
   super_admin: ['empresas', 'conta'],
 };
 
@@ -441,9 +674,63 @@ function abaPermitida(tab){
   return (ABAS_POR_PERFIL[PERFIL] || []).includes(tab);
 }
 
+/* ---- Sidebar recolhível: envolve o texto de cada botão num <span> (pra
+   poder esconder só o texto no modo recolhido, mantendo o ícone) e usa esse
+   mesmo texto como tooltip quando passa o mouse com a sidebar recolhida.
+   Roda uma vez só, na carga da página — o HTML dos botões é estático. ---- */
+(function prepararSidebarParaRecolhimento(){
+  document.querySelectorAll('nav.sidebar button[data-tab]').forEach(btn=>{
+    const iconEl = btn.querySelector('.icon');
+    const extras = [...btn.children].filter(el=>el!==iconEl); // ex: badge de notificação, que não deve virar tooltip
+    let textoBotao = btn.textContent.trim();
+    if(iconEl) textoBotao = textoBotao.replace(iconEl.textContent.trim(), '').trim();
+    extras.forEach(el=>{ textoBotao = textoBotao.replace(el.textContent.trim(), '').trim(); });
+    btn.setAttribute('data-tooltip', textoBotao);
+    // Reconstroi o conteúdo: ícone + texto embrulhado + extras (badge etc.) preservados
+    btn.innerHTML = '';
+    if(iconEl) btn.appendChild(iconEl);
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'nav-btn-label';
+    labelSpan.textContent = textoBotao;
+    btn.appendChild(labelSpan);
+    extras.forEach(el=>btn.appendChild(el));
+  });
+})();
+
+function aplicarSidebarColapsada(colapsada){
+  const nav = document.querySelector('nav.sidebar');
+  const btn = document.getElementById('btn-toggle-sidebar');
+  if(!nav || !btn) return;
+  nav.classList.toggle('collapsed', colapsada);
+  btn.title = colapsada ? 'Expandir menu' : 'Recolher menu';
+  try{ localStorage.setItem('pontocerto_sidebar_colapsada', colapsada ? '1' : '0'); }catch(e){}
+}
+document.getElementById('btn-toggle-sidebar')?.addEventListener('click', ()=>{
+  const nav = document.querySelector('nav.sidebar');
+  aplicarSidebarColapsada(!nav.classList.contains('collapsed'));
+});
+// Restaura a preferência salva (se houver) já na carga da página.
+try{
+  if(localStorage.getItem('pontocerto_sidebar_colapsada') === '1') aplicarSidebarColapsada(true);
+}catch(e){}
+
+// Delegado global: qualquer elemento com data-abrir-perfil, em qualquer
+// tela (tabela de colaboradores, Painel ao Vivo, busca), abre o modal de
+// perfil — não precisa reatar listener toda vez que a tela é re-renderizada.
+document.addEventListener('click', (e)=>{
+  const alvo = e.target.closest('[data-abrir-perfil]');
+  if(alvo) abrirPerfilColaborador(alvo.dataset.abrirPerfil);
+});
+
 function aplicarVisibilidadeAbas(){
   document.querySelectorAll('nav.sidebar button[data-tab]').forEach(btn=>{
     btn.style.display = abaPermitida(btn.dataset.tab) ? '' : 'none';
+  });
+  // Esconde o rótulo de um grupo inteiro (ex: "RH") quando nenhuma aba
+  // dele sobrou visível pro perfil logado — evita título solto sem nada embaixo.
+  document.querySelectorAll('nav.sidebar .nav-group').forEach(grupo=>{
+    const temAlgumVisivel = [...grupo.querySelectorAll('button[data-tab]')].some(b=>b.style.display !== 'none');
+    grupo.style.display = temAlgumVisivel ? '' : 'none';
   });
 }
 
@@ -535,7 +822,7 @@ async function doLogin(){
     if(empresaId) body.empresaId = empresaId;
     const data = await apiFetch('/auth/login', { method:'POST', body: JSON.stringify(body) });
     TOKEN = data.token; PERFIL = data.perfil; MEU_COLABORADOR_ID = data.colaboradorId || null;
-    EMPRESA_ID = data.empresaId; EMPRESA_NOME = data.empresaNome;
+    EMPRESA_ID = data.empresaId; EMPRESA_NOME = data.empresaNome; MEU_LOGIN = login;
     if(PERFIL === 'super_admin') { SUPER_ADMIN_TOKEN = TOKEN; SUPER_ADMIN_LOGIN = login; }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
@@ -585,6 +872,7 @@ function voltarParaSuperAdmin(){
 document.getElementById('btn-logout').addEventListener('click', ()=>{
   TOKEN = null; PERFIL = null; MEU_COLABORADOR_ID = null; EMPRESA_ID = null; EMPRESA_NOME = null; SUPER_ADMIN_TOKEN = null; SUPER_ADMIN_LOGIN = null;
   document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>{ b.style.display=''; });
+  document.querySelectorAll('nav.sidebar .nav-group').forEach(g=>{ g.style.display=''; });
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 });
@@ -660,6 +948,7 @@ function render(){
     abonos: renderAbonos,
     ausencias: renderAusencias,
     relatorios: renderRelatorios,
+    indicadores: renderIndicadores,
     cartao: renderCartao,
     config: renderConfig,
     etiquetas: renderEtiquetas,
@@ -691,49 +980,148 @@ const COR_STATUS = {
   ausencia: 'gray', abonado: 'green', folga: 'gray',
 };
 const CARDS_RESUMO = [
-  { chave: 'presente', label: 'Presentes', icone: '🟢', cor: '#166534', corBg: 'rgba(22,101,52,.1)' },
-  { chave: 'presente_atrasado', label: 'Presentes (atrasados)', icone: '🟠', cor: '#8A5A0A', corBg: 'rgba(138,90,10,.1)' },
-  { chave: 'atrasado', label: 'Atrasados (não chegaram)', icone: '🔴', cor: '#B91C1C', corBg: 'rgba(185,28,28,.1)' },
-  { chave: 'intervalo', label: 'No intervalo', icone: '🍽️', cor: '#8B5CF6', corBg: 'rgba(139,92,246,.1)' },
-  { chave: 'nao_iniciado', label: 'Ainda não iniciaram', icone: '⏳', cor: '#6B7480', corBg: 'rgba(107,116,128,.1)' },
-  { chave: 'concluido', label: 'Concluíram o dia', icone: '✅', cor: '#0E7490', corBg: 'rgba(14,116,144,.1)' },
-  { chave: 'ausencia', label: 'Ausentes (férias/atestado)', icone: '🛌', cor: '#6B7480', corBg: 'rgba(107,116,128,.1)' },
-  { chave: 'folga', label: 'Folga hoje', icone: '📅', cor: '#22D3EE', corBg: 'rgba(34,211,238,.12)' },
+  { chave: 'presente', label: 'Presentes', icone: '🟢', cor: '#16A34A', corBg: 'rgba(22,163,74,.12)' },
+  { chave: 'presente_atrasado', label: 'Presentes (atrasados)', icone: '🟠', cor: '#D97706', corBg: 'rgba(217,119,6,.12)', alerta: true },
+  { chave: 'atrasado', label: 'Atrasados', icone: '🔴', cor: '#DC2626', corBg: 'rgba(220,38,38,.12)', alerta: true },
+  { chave: 'intervalo', label: 'No intervalo', icone: '🍽️', cor: '#8B5CF6', corBg: 'rgba(139,92,246,.12)' },
+  { chave: 'nao_iniciado', label: 'Ainda não iniciaram', icone: '⏳', cor: '#64748B', corBg: 'rgba(100,116,139,.12)' },
+  { chave: 'concluido', label: 'Concluíram o dia', icone: '✅', cor: '#0891B2', corBg: 'rgba(8,145,178,.12)' },
+  { chave: 'ausencia', label: 'Ausentes', icone: '🛌', cor: '#64748B', corBg: 'rgba(100,116,139,.12)' },
+  { chave: 'folga', label: 'Folga hoje', icone: '📅', cor: '#22D3EE', corBg: 'rgba(34,211,238,.14)' },
 ];
 
 async function renderPainel(){
   const wrap = document.createElement('div');
+  const nomeExibicao = MEU_LOGIN || 'admin';
+  const inicial = nomeExibicao.charAt(0).toUpperCase();
+  const meuColab = colaboradoresCache.find(c=>c.id===MEU_COLABORADOR_ID);
+  const minhaFoto = meuColab ? fotoUrl(meuColab) : null;
+
   wrap.innerHTML = `
-    <div class="page-title">
-      <div><h1>Painel ao Vivo</h1><p>Status de cada colaborador agora, e faltas/atrasos do mês corrente</p></div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span id="painel-relogio" class="nums" style="color:var(--muted); font-size:13px;"></span>
-        <button class="btn ghost sm" id="btn-atualizar-painel">↻ Atualizar</button>
+    <div class="dash-header">
+      <div><h1>Olá, ${nomeExibicao}! 👋</h1><p>Aqui está o resumo do status da equipe hoje.</p></div>
+      <div class="dash-header-actions">
+        <div class="dash-search" style="position:relative;">
+          <span>🔍</span><input id="dash-busca" placeholder="Buscar por nome, matrícula ou CPF...">
+          <div id="dash-busca-dropdown" class="busca-dropdown" style="display:none;"></div>
+        </div>
+        <button class="dash-icon-btn" id="btn-dash-bell" title="Notificações">🔔<span class="dash-badge" id="dash-bell-badge" style="display:none;"></span></button>
+        <button class="dash-icon-btn" id="btn-dash-tema" title="Alternar tema (em breve)">🌙</button>
+        <div class="dash-avatar-btn" id="btn-dash-avatar" title="${nomeExibicao}">
+          ${minhaFoto ? `<img src="${minhaFoto}">` : `<div class="dash-avatar-fallback">${inicial}</div>`}
+          <span class="dash-online-dot"></span>
+        </div>
       </div>
     </div>
-    <div id="painel-cards" class="grid" style="grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;"></div>
-    <div class="card" id="painel-tabela"><div class="loading">Carregando...</div></div>
+    <div id="central-pendencias" class="pendencias-strip"><div class="skeleton skeleton-line w-40" style="height:16px;"></div></div>
+    <div class="dash-layout">
+      <div>
+        <div id="painel-cards" class="grid" style="grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+          ${Array(8).fill('<div class="skeleton skeleton-card"></div>').join('')}
+        </div>
+        <div class="card" id="painel-tabela" style="margin-bottom:0;">
+          ${Array(5).fill('<div class="skeleton-row"><div class="skeleton skeleton-avatar"></div><div style="flex:1;"><div class="skeleton skeleton-line w-40"></div><div class="skeleton skeleton-line w-60" style="margin-bottom:0;"></div></div></div>').join('')}
+        </div>
+      </div>
+      <div id="painel-lateral">
+        <div class="side-panel" id="painel-notif-widget"><div class="loading">Carregando...</div></div>
+        <div class="side-panel" id="painel-nr1-widget"><div class="loading">Carregando...</div></div>
+      </div>
+    </div>
   `;
   main.appendChild(wrap);
 
-  document.getElementById('btn-atualizar-painel').addEventListener('click', carregarPainel);
-
-  const atualizarRelogio = ()=>{
-    const el = document.getElementById('painel-relogio');
-    if(el) el.textContent = new Date().toLocaleTimeString('pt-BR');
-  };
-  atualizarRelogio();
+  document.getElementById('btn-dash-bell').addEventListener('click', ()=>{ currentTab='notificacoes'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab)); render(); });
+  document.getElementById('btn-dash-avatar').addEventListener('click', ()=>{ currentTab='conta'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab)); render(); });
+  document.getElementById('btn-dash-tema').addEventListener('click', ()=>{
+    alert('A troca de tema para o painel inteiro ainda não está disponível — por enquanto só a tela de login tem tema claro/escuro.');
+  });
+  document.getElementById('dash-busca').addEventListener('input', (e)=>{
+    const termo = e.target.value.trim().toLowerCase();
+    filtroEquipe = termo;
+    renderizarTabelaEquipe();
+    renderizarDropdownBusca(termo);
+  });
+  document.getElementById('dash-busca').addEventListener('keydown', (e)=>{
+    if(e.key==='Escape') fecharDropdownBusca();
+  });
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('.dash-search')) fecharDropdownBusca();
+  });
 
   await carregarPainel();
+  await carregarCentralPendencias();
+  await carregarWidgetNotificacoes();
+  await carregarWidgetNr1();
+
   // Um único intervalo (1s) cuida do relógio e, a cada 30 ticks, atualiza os
   // dados — evita vazar múltiplos timers ao trocar de aba repetidamente.
   let ticks = 0;
-  painelInterval = setInterval(()=>{
-    atualizarRelogio();
+  painelInterval = setInterval(async ()=>{
     ticks++;
-    if(ticks % 30 === 0 && currentTab==='painel') carregarPainel();
+    if(ticks % 30 === 0 && currentTab==='painel'){
+      await carregarPainel();
+      carregarWidgetNotificacoes();
+      carregarCentralPendencias();
+    }
   }, 1000);
 }
+
+let dadosPainelAtual = null;
+let destacarColaboradorId = null;
+
+/* ---- Central de Pendências: agrega dado real de 4 fontes que já existem
+   (abonos, EPI, NR-1, status ao vivo) — nunca mostra número inventado; se
+   uma consulta falhar, aquele item simplesmente não entra na lista. ---- */
+async function carregarCentralPendencias(){
+  const el = document.getElementById('central-pendencias');
+  if(!el) return;
+
+  const itens = [];
+  try{
+    const atrasados = dadosPainelAtual?.contagem?.atrasado || 0;
+    if(atrasados > 0) itens.push({ cor:'#DC2626', qtd:atrasados, texto:`colaborador${atrasados>1?'es':''} sem registro de entrada`, tab:'painel' });
+  }catch(e){}
+  try{
+    const abonos = await apiFetch('/abonos?status=pendente');
+    if(abonos.length > 0) itens.push({ cor:'#D97706', qtd:abonos.length, texto:`abono${abonos.length>1?'s':''} aguardando aprovação`, tab:'abonos' });
+  }catch(e){}
+  try{
+    const epis = await apiFetch('/epi?status=pendente');
+    if(epis.length > 0) itens.push({ cor:'#16A34A', qtd:epis.length, texto:`solicitação${epis.length>1?'ões':''} de EPI pendente${epis.length>1?'s':''}`, tab:'epi' });
+  }catch(e){}
+  try{
+    const acoes = await apiFetch('/nr1/acoes');
+    const hoje = new Date(); const em7dias = new Date(); em7dias.setDate(hoje.getDate()+7);
+    const proximas = acoes.filter(a => { const d = new Date(a.dataRealizacao); return d >= hoje && d <= em7dias; });
+    if(proximas.length > 0) itens.push({ cor:'#8B5CF6', qtd:proximas.length, texto:`ação${proximas.length>1?'ões':''} de NR-1 nos próximos 7 dias`, tab:'nr1' });
+  }catch(e){}
+
+  if(currentTab !== 'painel') return;
+
+  if(itens.length === 0){
+    el.innerHTML = `<div class="pendencias-vazio">✅ <strong>Tudo em dia!</strong> Nenhuma pendência precisa da sua atenção agora.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="pendencias-titulo">Requer atenção</div>
+    <div class="pendencias-itens">
+      ${itens.map(it=>`
+        <button class="pendencia-item" style="--pend-cor:${it.cor};" data-ir="${it.tab}">
+          <span class="pendencia-num">${it.qtd}</span>
+          <span class="pendencia-texto">${it.texto}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  el.querySelectorAll('[data-ir]').forEach(b=>b.addEventListener('click', ()=>{
+    currentTab = b.dataset.ir;
+    document.querySelectorAll('nav.sidebar button[data-tab]').forEach(bb=>bb.classList.toggle('active', bb.dataset.tab===currentTab));
+    render();
+  }));
+}
+let filtroEquipe = '';
 
 async function carregarPainel(){
   const cardsEl = document.getElementById('painel-cards');
@@ -744,35 +1132,257 @@ async function carregarPainel(){
   try{ dados = await apiFetch('/dashboard/hoje'); }
   catch(err){ tabelaEl.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
   if(currentTab !== 'painel') return;
+  dadosPainelAtual = dados;
 
-  cardsEl.innerHTML = CARDS_RESUMO.map(c=>`
-    <div class="stat-card">
-      <div class="stat-icon" style="background:${c.corBg}; color:${c.cor};">${c.icone}</div>
-      <div class="stat-num nums">${dados.contagem[c.chave]||0}</div>
-      <div class="stat-label">${c.label}</div>
+  cardsEl.innerHTML = CARDS_RESUMO.map(c=>{
+    const valor = dados.contagem[c.chave]||0;
+    const total = dados.colaboradores.length || 1;
+    const pct = Math.round((valor/total)*100);
+    const emAlerta = c.alerta && valor > 0;
+    return `
+    <div class="stat-card ${emAlerta?'stat-alert':''}" style="--stat-accent:${c.cor};">
+      <div class="stat-card-top">
+        <div class="stat-label">${c.label}</div>
+        <div class="stat-icon" style="background:${c.corBg}; color:${c.cor};">${c.icone}</div>
+      </div>
+      <div class="stat-num nums">${valor}</div>
+      <div class="stat-foot"><span class="stat-dot"></span>${pct}% do total de hoje</div>
+      <div class="stat-progress"><div class="stat-progress-fill" style="width:${pct}%;"></div></div>
     </div>
-  `).join('');
+  `;}).join('');
+
+  renderizarTabelaEquipe();
+}
+
+/* ---- Busca Global: procura em nome/matrícula/CPF/cargo, direto na base
+   de colaboradores já carregada em memória (sem chamada extra ao backend).
+   Mostra um menu de resultados com atalho pro cadastro de cada um. ---- */
+function renderizarDropdownBusca(termo){
+  const drop = document.getElementById('dash-busca-dropdown');
+  if(!drop) return;
+  if(!termo || termo.length < 2){ drop.style.display='none'; return; }
+
+  const termoDigitos = termo.replace(/\D/g,'');
+  const resultados = colaboradoresCache.filter(c=>{
+    const nome = (c.nome||'').toLowerCase();
+    const matricula = (c.matricula||'').toLowerCase();
+    const cargo = (c.cargo||'').toLowerCase();
+    const cpfDigitos = (c.cpf||'').replace(/\D/g,'');
+    return nome.includes(termo) || matricula.includes(termo) || cargo.includes(termo)
+      || (termoDigitos.length>=3 && cpfDigitos.includes(termoDigitos));
+  }).slice(0, 6);
+
+  if(resultados.length===0){
+    drop.innerHTML = `<div class="busca-dropdown-vazio">Nenhum colaborador encontrado para "${termo}".</div>`;
+    drop.style.display='block';
+    return;
+  }
+
+  drop.innerHTML = resultados.map(c=>{
+    const statusVivo = dadosPainelAtual?.colaboradores?.find(x=>x.colaboradorId===c.id)?.status;
+    const rotulo = statusVivo ? (ROTULO_STATUS[statusVivo]||statusVivo) : (c.status==='ativo'?'Ativo':'Desligado');
+    const cor = statusVivo ? (COR_STATUS[statusVivo]||'gray') : (c.status==='ativo'?'green':'gray');
+    return `
+    <button class="busca-dropdown-item" data-ir-colab="${c.id}">
+      <div class="team-avatar" style="width:30px; height:30px;">
+        ${fotoUrl(c)?`<img src="${fotoUrl(c)}">`:`<div class="team-avatar-fallback">${c.nome.charAt(0).toUpperCase()}</div>`}
+      </div>
+      <div style="flex:1; text-align:left; min-width:0;">
+        <div style="font-size:12.5px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.nome}</div>
+        <div style="font-size:11px; color:var(--muted);">#${c.matricula||'—'} · ${c.cargo||'—'}</div>
+      </div>
+      <span class="badge ${cor}" style="padding:1px 7px; font-size:10px; flex-shrink:0; white-space:nowrap;">${rotulo}</span>
+    </button>`;
+  }).join('');
+  drop.style.display='block';
+
+  drop.querySelectorAll('[data-ir-colab]').forEach(b=>b.addEventListener('click', ()=>{
+    fecharDropdownBusca();
+    document.getElementById('dash-busca').value = '';
+    filtroEquipe = '';
+    abrirPerfilColaborador(b.dataset.irColab);
+  }));
+}
+function fecharDropdownBusca(){
+  const drop = document.getElementById('dash-busca-dropdown');
+  if(drop) drop.style.display='none';
+}
+
+function renderizarTabelaEquipe(){
+  const tabelaEl = document.getElementById('painel-tabela');
+  if(!tabelaEl || !dadosPainelAtual) return;
+  const dados = dadosPainelAtual;
+  const lista = filtroEquipe
+    ? dados.colaboradores.filter(c => c.nome.toLowerCase().includes(filtroEquipe) || (c.cargo||'').toLowerCase().includes(filtroEquipe))
+    : dados.colaboradores;
 
   tabelaEl.innerHTML = `
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;">
+      <div><h3 style="margin:0; font-size:16px; color:var(--navy-dark);">Status da Equipe</h3><p style="margin:3px 0 0; font-size:12.5px; color:var(--muted);">Acompanhe o status de cada colaborador em tempo real.</p></div>
+      <button class="btn ghost sm" id="btn-ver-relatorio-completo">📊 Ver relatório completo</button>
+    </div>
     <table>
-      <thead><tr><th></th><th>Colaborador</th><th>Cargo</th><th>Status agora</th><th>Entrada hoje</th><th>Faltas no mês</th><th>Atrasos no mês</th></tr></thead>
+      <thead><tr><th></th><th>Cargo</th><th>Status agora</th><th>Entrada hoje</th><th>Faltas no mês</th><th>Atrasos no mês</th><th></th></tr></thead>
       <tbody>
-        ${dados.colaboradores.map(c=>`
+        ${lista.length===0 ? `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--muted);">Nenhum colaborador encontrado para "${filtroEquipe}".</td></tr>` : lista.map(c=>`
           <tr>
-            <td><div class="photo-box" style="width:30px;height:36px;">${c.fotoPath?`<img src="${c.fotoPath.startsWith('http')?c.fotoPath:apiOrigin()+c.fotoPath}">`:'<div class="ph" style="font-size:7px;">—</div>'}</div></td>
-            <td><strong>${c.nome}</strong> ${c.matricula?`<span class="nums" style="color:var(--muted); font-size:11px;">(${c.matricula})</span>`:''}</td>
+            <td>
+              <div class="team-row-person">
+                <div class="team-avatar">
+                  ${c.fotoPath?`<img src="${c.fotoPath.startsWith('http')?c.fotoPath:apiOrigin()+c.fotoPath}">`:`<div class="team-avatar-fallback">${c.nome.charAt(0).toUpperCase()}</div>`}
+                  <span class="team-status-dot" style="background:${{presente:'#16A34A',presente_atrasado:'#D97706',atrasado:'#DC2626',intervalo:'#8B5CF6',concluido:'#0891B2'}[c.status]||'#94A3B8'};"></span>
+                </div>
+                <div><strong class="perfil-link" data-abrir-perfil="${c.colaboradorId}">${c.nome}</strong><div class="matricula">#${c.matricula||'—'}</div></div>
+              </div>
+            </td>
             <td>${c.cargo||'—'}</td>
             <td><span class="badge ${COR_STATUS[c.status]||'gray'}">${ROTULO_STATUS[c.status]||c.status}</span></td>
             <td class="nums">${c.entrada||c.ultimaBatida||'—'}</td>
             <td class="nums" style="color:${c.faltasNoMes>0?'var(--red)':'inherit'};">${c.faltasNoMes}</td>
             <td class="nums" style="color:${c.diasComAtrasoNoMes>0?'var(--amber)':'inherit'};">${c.diasComAtrasoNoMes}</td>
+            <td style="position:relative;">
+              <button class="row-menu-btn" data-menu="${c.colaboradorId}">⋮</button>
+              <div class="row-menu-dropdown" id="menu-${c.colaboradorId}" style="display:none;">
+                <button data-ver-cartao="${c.colaboradorId}">📅 Ver cartão de ponto</button>
+                <button data-abrir-perfil="${c.colaboradorId}">👤 Ver perfil completo</button>
+              </div>
+            </td>
           </tr>
         `).join('')}
       </tbody>
     </table>
-    <p style="font-size:11px; color:var(--muted); margin-top:10px;">Atualiza automaticamente a cada 30 segundos. Última atualização: ${dados.hoje} às ${new Date().toLocaleTimeString('pt-BR')}.</p>
+    <p style="font-size:11px; color:var(--muted); margin-top:10px; display:flex; justify-content:space-between;">
+      <span>Atualizado automaticamente a cada 30 segundos.</span>
+      <span>Última atualização: ${dados.hoje} às ${new Date().toLocaleTimeString('pt-BR')}.</span>
+    </p>
   `;
+
+  document.getElementById('btn-ver-relatorio-completo')?.addEventListener('click', ()=>{ currentTab='relatorios'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab)); render(); });
+
+  tabelaEl.querySelectorAll('[data-menu]').forEach(btn=>btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const menu = document.getElementById(`menu-${btn.dataset.menu}`);
+    const jaAberto = menu.style.display==='block';
+    tabelaEl.querySelectorAll('.row-menu-dropdown').forEach(m=>m.style.display='none');
+    menu.style.display = jaAberto ? 'none' : 'block';
+  }));
+  document.addEventListener('click', ()=>{ tabelaEl.querySelectorAll('.row-menu-dropdown').forEach(m=>m.style.display='none'); });
+  tabelaEl.querySelectorAll('[data-ver-cartao]').forEach(b=>b.addEventListener('click', ()=>{
+    selected.colabCartao = b.dataset.verCartao; currentTab='cartao';
+    document.querySelectorAll('nav.sidebar button[data-tab]').forEach(bb=>bb.classList.toggle('active', bb.dataset.tab===currentTab)); render();
+  }));
 }
+
+/* ---- Widget lateral: Notificações (resumo, dentro do Painel ao Vivo) ---- */
+async function carregarWidgetNotificacoes(){
+  const el = document.getElementById('painel-notif-widget');
+  if(!el) return;
+  let lista;
+  try{ lista = await apiFetch('/notificacoes'); }catch(err){ el.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  if(currentTab !== 'painel') return;
+
+  const naoLidas = lista.filter(n=>!n.lida);
+  const badge = document.getElementById('dash-bell-badge');
+  if(badge){ if(naoLidas.length>0){ badge.textContent = naoLidas.length; badge.style.display='flex'; } else { badge.style.display='none'; } }
+
+  const top5 = lista.slice(0,5);
+  el.innerHTML = `
+    <div class="side-panel-head">
+      <div><h3>Notificações</h3><p>Avisos importantes e abonos pendentes</p></div>
+      ${naoLidas.length>0 ? `<a class="side-panel-link" id="btn-marcar-todas-lidas">Marcar todas como lidas ✓</a>` : ''}
+    </div>
+    ${top5.length===0 ? `<div class="empty" style="padding:16px 0;">Nenhuma notificação.</div>` : top5.map(n=>{
+      const cfg = NOTIF_CONFIG[n.tipo] || { icone:'🔔', cor:'#6B7480', corBg:'rgba(107,116,128,.1)' };
+      return `
+      <div class="notif-item">
+        <div class="notif-icon" style="background:${cfg.corBg}; color:${cfg.cor};">${cfg.icone}</div>
+        <div class="notif-body">
+          <div class="notif-title">${cfg.rotulo||n.titulo} ${!n.lida?'<span class="notif-badge-new">novo</span>':''}</div>
+          <div class="notif-msg">${n.mensagem}</div>
+        </div>
+        <div class="notif-time">${new Date(n.createdAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+    `;}).join('')}
+    <div class="side-panel-foot"><a class="side-panel-link" id="btn-ver-todas-notif">Ver todas as notificações →</a></div>
+  `;
+  document.getElementById('btn-ver-todas-notif')?.addEventListener('click', ()=>{ currentTab='notificacoes'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab)); render(); });
+  document.getElementById('btn-marcar-todas-lidas')?.addEventListener('click', async ()=>{
+    try{
+      await Promise.all(naoLidas.map(n=>apiFetch(`/notificacoes/${n.id}/lida`, { method:'PATCH' })));
+      carregarWidgetNotificacoes();
+    }catch(err){ alert(err.message); }
+  });
+}
+
+/* ---- Widget lateral: NR-1 (criação rápida, dentro do Painel ao Vivo) ---- */
+async function carregarWidgetNr1(){
+  const el = document.getElementById('painel-nr1-widget');
+  if(!el) return;
+  const podeGerenciar = PERFIL==='coordenador' || PERFIL==='admin';
+
+  el.innerHTML = `
+    <div class="side-panel-head">
+      <div><h3>NR-1 – Gestão de Riscos Psicossociais</h3><p>Ações, treinamentos e participação (com abono automático de horas)</p></div>
+      <div class="stat-icon" style="background:rgba(139,92,246,.12); color:#8B5CF6; flex-shrink:0;">🧠</div>
+    </div>
+    ${podeGerenciar ? `
+    <div style="font-size:12px; font-weight:700; color:var(--navy-dark); margin-bottom:10px;">Nova Ação</div>
+    <div class="nr1-mini-field"><label>Título</label><input id="mini-nr1-titulo" placeholder="Ex: Treinamento de Liderança"></div>
+    <div class="grid cols-2" style="gap:10px;">
+      <div class="nr1-mini-field"><label>Tipo</label>
+        <select id="mini-nr1-tipo"><option value="treinamento">Treinamento</option><option value="palestra">Palestra</option><option value="ginastica_laboral">Ginástica laboral</option><option value="avaliacao_risco">Avaliação de risco</option><option value="outro">Outro</option></select>
+      </div>
+      <div class="nr1-mini-field"><label>Data de realização</label><input type="date" id="mini-nr1-data"></div>
+    </div>
+    <div class="nr1-mini-field"><label>Carga horária (min)</label><input type="number" id="mini-nr1-carga" value="60"></div>
+    <div class="nr1-mini-field"><label>Descrição</label><textarea id="mini-nr1-desc" rows="2" placeholder="Descreva a ação..."></textarea></div>
+    <div class="nr1-mini-field"><label>Material/lista de presença (opcional)</label><input type="file" id="mini-nr1-anexo" accept="application/pdf,image/*"></div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+      <label class="toggle-switch"><input type="checkbox" id="mini-nr1-abono" checked><span class="slider"></span></label>
+      <span style="font-size:12px; color:var(--text);">Gerar abono de horas para os participantes</span>
+    </div>
+    <div id="mini-nr1-msg"></div>
+    <button class="btn gold" id="btn-mini-nr1-criar" style="width:100%; margin-bottom:16px;">+ Criar ação</button>
+    ` : ''}
+    <div style="font-size:12px; font-weight:700; color:var(--navy-dark); margin-bottom:10px;">Ações realizadas</div>
+    <div id="mini-nr1-lista"><div class="loading">Carregando...</div></div>
+    <div class="side-panel-foot"><a class="side-panel-link" id="btn-ver-nr1-completo">Ver histórico completo →</a></div>
+  `;
+
+  document.getElementById('btn-ver-nr1-completo').addEventListener('click', ()=>{ currentTab='nr1'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===currentTab)); render(); });
+
+  if(podeGerenciar) document.getElementById('btn-mini-nr1-criar').addEventListener('click', async ()=>{
+    const titulo = document.getElementById('mini-nr1-titulo').value.trim();
+    if(!titulo){ showMsg('mini-nr1-msg','Informe o título.','err'); return; }
+    const fd = new FormData();
+    fd.append('titulo', titulo);
+    fd.append('tipo', document.getElementById('mini-nr1-tipo').value);
+    fd.append('dataRealizacao', document.getElementById('mini-nr1-data').value);
+    fd.append('cargaHorariaMin', document.getElementById('mini-nr1-carga').value);
+    fd.append('descricao', document.getElementById('mini-nr1-desc').value);
+    fd.append('geraAbono', document.getElementById('mini-nr1-abono').checked);
+    const arq = document.getElementById('mini-nr1-anexo').files[0];
+    if(arq) fd.append('anexo', arq);
+    try{
+      await apiFetch('/nr1/acoes', { method:'POST', body: fd });
+      showMsg('mini-nr1-msg','Ação criada.','ok');
+      document.getElementById('mini-nr1-titulo').value='';
+      carregarListaMiniNr1();
+    }catch(err){ showMsg('mini-nr1-msg', err.message, 'err'); }
+  });
+
+  await carregarListaMiniNr1();
+}
+async function carregarListaMiniNr1(){
+  const el = document.getElementById('mini-nr1-lista');
+  if(!el) return;
+  let lista;
+  try{ lista = await apiFetch('/nr1/acoes'); }catch(err){ el.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  el.innerHTML = lista.length===0
+    ? `<div class="empty" style="padding:14px 0;">Nenhuma ação registrada ainda.<br><span style="font-size:11px;">Comece criando uma nova ação.</span></div>`
+    : lista.slice(0,4).map(a=>`<div style="padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px;"><strong>${a.titulo}</strong><div style="color:var(--muted); font-size:11px;">${a.dataRealizacao} · ${a.cargaHorariaMin} min</div></div>`).join('');
+}
+
 
 /* ============================================================
    TAB: COLABORADORES
@@ -881,7 +1491,15 @@ function renderListaColaboradores(){
   if(!listaEl) return;
   const podeCadastrar = PERFIL === 'coordenador' || PERFIL === 'admin';
   const podeExcluir = PERFIL === 'admin';
-  const filtro = document.getElementById('filtro-status-colab')?.value ?? 'ativo';
+  const selectFiltro = document.getElementById('filtro-status-colab');
+  // Se veio de uma busca global apontando pra alguém que está filtrado fora
+  // da view atual (ex: desligado, com filtro em "Ativos"), muda o filtro
+  // pra "Todos" automaticamente — senão a pessoa buscada simplesmente não apareceria.
+  if(destacarColaboradorId && selectFiltro){
+    const alvo = colaboradoresCache.find(c=>c.id===destacarColaboradorId);
+    if(alvo && selectFiltro.value && alvo.status !== selectFiltro.value) selectFiltro.value = '';
+  }
+  const filtro = selectFiltro?.value ?? 'ativo';
   const lista = filtro ? colaboradoresCache.filter(c=>c.status===filtro) : colaboradoresCache;
 
   if(lista.length===0){
@@ -889,9 +1507,9 @@ function renderListaColaboradores(){
   }else{
     listaEl.innerHTML = `<table><thead><tr><th></th><th>Nome</th><th>Matrícula</th><th>Cargo</th><th>Status</th><th>Jornada</th><th></th></tr></thead><tbody>
       ${lista.map(c=>`
-        <tr style="${c.status==='inativo'?'opacity:.7;':''}">
+        <tr id="colab-row-${c.id}" style="${c.status==='inativo'?'opacity:.7;':''} ${c.id===destacarColaboradorId?'background:rgba(34,211,238,.12);':''}">
           <td><div class="photo-box" style="width:34px;height:40px;">${fotoUrl(c)?`<img src="${fotoUrl(c)}">`:'<div class="ph" style="font-size:8px;">sem foto</div>'}</div></td>
-          <td><strong>${c.nome}</strong></td>
+          <td><strong class="perfil-link" data-abrir-perfil="${c.id}">${c.nome}</strong></td>
           <td class="nums">${c.matricula||'—'}</td>
           <td>${c.cargo||'—'}</td>
           <td>${c.status==='ativo'?'<span class="badge green">Ativo</span>':`<span class="badge red">Desligado</span>`}</td>
@@ -903,6 +1521,11 @@ function renderListaColaboradores(){
           </td>
         </tr>`).join('')}
     </tbody></table>`;
+    if(destacarColaboradorId){
+      const linha = document.getElementById(`colab-row-${destacarColaboradorId}`);
+      linha?.scrollIntoView?.({ behavior:'smooth', block:'center' });
+      destacarColaboradorId = null;
+    }
     listaEl.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', async ()=>{
       if(confirm('Remover este colaborador?')){
         try{ await apiFetch(`/colaboradores/${b.dataset.del}`, { method:'DELETE' }); await refreshColaboradores(); render(); }
@@ -923,6 +1546,134 @@ function renderListaColaboradores(){
       }catch(err){ alert(err.message); }
     }));
   }
+}
+
+/* ============================================================
+   PERFIL DO COLABORADOR (modal com abas — Visão Geral, Ponto,
+   Ausências, Abonos, Auditoria). Reaproveita endpoints que já
+   existem (cartão de ponto, ausências, abonos, auditoria já
+   suportam filtro por colaboradorId), sem precisar de rota nova.
+   ============================================================ */
+let perfilState = { colaboradorId: null, mes: null, cartao: null, aba: 'geral' };
+
+function abrirPerfilColaborador(colaboradorId){
+  const colaborador = colaboradoresCache.find(c=>c.id===colaboradorId);
+  if(!colaborador){ alert('Colaborador não encontrado no cache local — recarregue a página.'); return; }
+  perfilState = { colaboradorId, mes: todayYM(), cartao: null, aba: 'geral' };
+
+  const wrap = document.getElementById('modal-perfil-wrap') || (()=>{ const d=document.createElement('div'); d.id='modal-perfil-wrap'; document.body.appendChild(d); return d; })();
+  wrap.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal-box" style="max-width:760px;">
+        <div style="display:flex; justify-content:flex-end;"><button class="btn ghost sm" id="btn-fechar-perfil">✕</button></div>
+        <div style="display:flex; gap:16px; align-items:center; margin-bottom:18px; margin-top:-30px;">
+          <div class="team-avatar" style="width:56px; height:56px; flex-shrink:0;">
+            ${fotoUrl(colaborador)?`<img src="${fotoUrl(colaborador)}">`:`<div class="team-avatar-fallback" style="font-size:20px;">${colaborador.nome.charAt(0).toUpperCase()}</div>`}
+          </div>
+          <div style="flex:1;">
+            <h3 style="margin:0; font-size:17px;">${colaborador.nome}</h3>
+            <p style="margin:2px 0 0; font-size:12.5px; color:var(--muted);">${colaborador.cargo||'—'} · #${colaborador.matricula||'—'}</p>
+          </div>
+          <span class="badge ${colaborador.status==='ativo'?'green':'red'}">${colaborador.status==='ativo'?'Ativo':'Desligado'}</span>
+        </div>
+        <div id="perfil-resumo" class="grid cols-4" style="gap:8px; margin-bottom:16px;"><div class="loading" style="grid-column:1/-1;">Carregando resumo...</div></div>
+        <div class="tabs-sub" style="margin-bottom:14px;">
+          <button data-pa="geral" class="active">Visão Geral</button>
+          <button data-pa="ponto">Ponto</button>
+          <button data-pa="ausencias">Ausências</button>
+          <button data-pa="abonos">Abonos</button>
+          <button data-pa="auditoria">Auditoria</button>
+        </div>
+        <div id="perfil-conteudo" style="max-height:400px; overflow-y:auto;"><div class="loading">Carregando...</div></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('btn-fechar-perfil').addEventListener('click', ()=>{ wrap.innerHTML=''; });
+  wrap.querySelectorAll('.tabs-sub button').forEach(b=>b.addEventListener('click', ()=>{
+    wrap.querySelectorAll('.tabs-sub button').forEach(bb=>bb.classList.toggle('active', bb===b));
+    perfilState.aba = b.dataset.pa;
+    renderConteudoPerfil();
+  }));
+
+  carregarResumoPerfil();
+  renderConteudoPerfil();
+}
+
+async function carregarResumoPerfil(){
+  const el = document.getElementById('perfil-resumo');
+  if(!el) return;
+  try{
+    const dados = await apiFetch(`/cartao-ponto/${perfilState.colaboradorId}?mes=${perfilState.mes}`);
+    perfilState.cartao = dados;
+    const t = dados.totais;
+    el.innerHTML = `
+      <div class="stat-card" style="padding:10px 12px;"><div class="stat-label" style="font-size:9.5px;">Trabalhado</div><div class="stat-num nums" style="font-size:18px;">${t.trabalhado}</div></div>
+      <div class="stat-card" style="padding:10px 12px; --stat-accent:#DC2626;"><div class="stat-label" style="font-size:9.5px;">Faltas</div><div class="stat-num nums" style="font-size:18px;">${t.faltas}</div></div>
+      <div class="stat-card" style="padding:10px 12px; --stat-accent:#D97706;"><div class="stat-label" style="font-size:9.5px;">Dias c/ atraso</div><div class="stat-num nums" style="font-size:18px;">${t.diasComAtraso}</div></div>
+      <div class="stat-card" style="padding:10px 12px; --stat-accent:#8B5CF6;"><div class="stat-label" style="font-size:9.5px;">Horas extras</div><div class="stat-num nums" style="font-size:18px;">${t.extra}</div></div>
+    `;
+  }catch(err){ el.innerHTML = `<div class="msg err" style="grid-column:1/-1;">${err.message}</div>`; }
+}
+
+async function renderConteudoPerfil(){
+  const el = document.getElementById('perfil-conteudo');
+  if(!el) return;
+  el.innerHTML = `<div class="loading">Carregando...</div>`;
+  const { colaboradorId, aba } = perfilState;
+
+  try{
+    if(aba==='geral'){
+      const colaborador = colaboradoresCache.find(c=>c.id===colaboradorId);
+      el.innerHTML = `
+        <div class="grid cols-2" style="gap:14px; font-size:13px;">
+          <div><strong>Departamento</strong><div style="color:var(--muted);">${colaborador.departamento||'—'}</div></div>
+          <div><strong>Admissão</strong><div style="color:var(--muted);">${colaborador.dataAdmissao||'—'}</div></div>
+          <div><strong>E-mail</strong><div style="color:var(--muted);">${colaborador.email||'—'}</div></div>
+          <div><strong>CPF</strong><div style="color:var(--muted);">${colaborador.cpf||'—'}</div></div>
+          <div><strong>Tipo de contrato</strong><div style="color:var(--muted);">${colaborador.tipoContrato||'—'}</div></div>
+          <div><strong>Tolerância</strong><div style="color:var(--muted);">${colaborador.toleranciaMin||0} min</div></div>
+        </div>
+        <p style="font-size:11.5px; color:var(--muted); margin-top:16px;">Jornada semanal: ${DIA_KEYS.map(k=>colaborador.jornada?.[k]??0).join('/')} horas (dom a sáb)</p>
+      `;
+    }
+    else if(aba==='ponto'){
+      const dados = perfilState.cartao || await apiFetch(`/cartao-ponto/${colaboradorId}?mes=${perfilState.mes}`);
+      el.innerHTML = `<table><thead><tr><th>Data</th><th>Entrada</th><th>Saída int.</th><th>Volta int.</th><th>Saída</th><th>Trab.</th></tr></thead><tbody>
+        ${dados.dias.map(d=>`<tr><td class="nums">${d.data}</td><td class="nums">${d.e1||'—'}</td><td class="nums">${d.s1||'—'}</td><td class="nums">${d.e2||'—'}</td><td class="nums">${d.s2||'—'}</td><td class="nums">${minToTimeLocal(d.minutosTrabalhados)}</td></tr>`).join('')}
+      </tbody></table>`;
+    }
+    else if(aba==='ausencias'){
+      const [ferias, atestados, ocorrencias] = await Promise.all([
+        apiFetch(`/ausencias/ferias?colaboradorId=${colaboradorId}`),
+        apiFetch(`/ausencias/atestados?colaboradorId=${colaboradorId}`),
+        apiFetch(`/ausencias/ocorrencias?colaboradorId=${colaboradorId}`),
+      ]);
+      const total = ferias.length + atestados.length + ocorrencias.length;
+      el.innerHTML = total===0 ? `<div class="empty">Nenhuma ausência registrada.</div>` : `
+        ${ferias.map(f=>`<div class="notif-item"><div class="notif-icon" style="background:rgba(34,211,238,.1); color:#22D3EE;">🌴</div><div class="notif-body"><div class="notif-title">Férias</div><div class="notif-msg">${f.dataInicioGozo} a ${f.dataFimGozo}</div></div></div>`).join('')}
+        ${atestados.map(a=>`<div class="notif-item"><div class="notif-icon" style="background:rgba(217,119,6,.1); color:#D97706;">🩺</div><div class="notif-body"><div class="notif-title">Atestado</div><div class="notif-msg">${a.dataInicio} a ${a.dataFim} ${a.cid?'· CID '+a.cid:''}</div></div></div>`).join('')}
+        ${ocorrencias.map(o=>`<div class="notif-item"><div class="notif-icon" style="background:rgba(220,38,38,.1); color:#DC2626;">⚠️</div><div class="notif-body"><div class="notif-title">${o.tipo==='suspensao'?'Suspensão':'Advertência'}</div><div class="notif-msg">${o.dataInicio} ${o.motivo?'· '+o.motivo:''}</div></div></div>`).join('')}
+      `;
+    }
+    else if(aba==='abonos'){
+      const abonos = await apiFetch(`/abonos?colaboradorId=${colaboradorId}`);
+      el.innerHTML = abonos.length===0 ? `<div class="empty">Nenhum abono solicitado.</div>` :
+        `<table><thead><tr><th>Data</th><th>Motivo</th><th>Status</th></tr></thead><tbody>
+          ${abonos.map(a=>`<tr><td class="nums">${a.data}</td><td>${a.tipoMotivo}</td><td><span class="badge ${a.status==='aprovado'?'green':a.status==='reprovado'?'red':'amber'}">${a.status}</span></td></tr>`).join('')}
+        </tbody></table>`;
+    }
+    else if(aba==='auditoria'){
+      const eventos = await apiFetch(`/auditoria?entidade=Colaborador&entidadeId=${colaboradorId}`);
+      const lista = Array.isArray(eventos) ? eventos : (eventos.linhas||eventos.registros||[]);
+      el.innerHTML = lista.length===0 ? `<div class="empty">Nenhum evento de auditoria para este colaborador.</div>` :
+        lista.map(ev=>`<div class="notif-item"><div class="notif-icon" style="background:rgba(100,116,139,.1); color:#64748B;">📜</div><div class="notif-body"><div class="notif-title">${ev.acao}</div><div class="notif-msg">${new Date(ev.createdAt).toLocaleString('pt-BR')}</div></div></div>`).join('');
+    }
+  }catch(err){ el.innerHTML = `<div class="msg err">${err.message}</div>`; }
+}
+function minToTimeLocal(min){
+  if(!min) return '0:00';
+  const h = Math.floor(min/60), m = min%60;
+  return `${h}:${String(m).padStart(2,'0')}`;
 }
 
 function abrirModalDesligar(colaborador){
@@ -1321,6 +2072,179 @@ async function renderAusencias(){
 /* ============================================================
    TAB: RELATÓRIOS
    ============================================================ */
+/* ============================================================
+   TAB: INDICADORES DE RH
+   ============================================================ */
+let mesIndicadores = null;
+
+async function renderIndicadores(){
+  if(!mesIndicadores) mesIndicadores = todayYM();
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="page-title">
+      <div><h1>Indicadores de RH</h1><p>Assiduidade, pontualidade e horas — comparado ao mês anterior</p></div>
+      <div class="field" style="width:170px;"><input type="month" id="ind-mes" value="${mesIndicadores}"></div>
+    </div>
+    <div id="ind-conteudo"><div class="loading">Calculando indicadores do mês...</div></div>
+  `;
+  main.appendChild(wrap);
+  document.getElementById('ind-mes').addEventListener('change', (e)=>{ mesIndicadores = e.target.value; carregarIndicadores(); });
+  await carregarIndicadores();
+}
+
+function trendBadge(valor, quantoMenorMelhor){
+  if(valor === 0) return `<span class="trend-badge trend-neutro">— igual ao mês anterior</span>`;
+  const melhorou = quantoMenorMelhor ? valor < 0 : valor > 0;
+  const seta = valor > 0 ? '▲' : '▼';
+  const abs = Math.abs(valor);
+  return `<span class="trend-badge ${melhorou?'trend-bom':'trend-ruim'}">${seta} ${abs}${Number.isInteger(abs)?'':''} vs. mês anterior</span>`;
+}
+
+async function carregarIndicadores(){
+  const cont = document.getElementById('ind-conteudo');
+  if(!cont) return;
+  let d;
+  try{ d = await apiFetch(`/relatorios/indicadores?mes=${mesIndicadores}`); }
+  catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  if(currentTab !== 'indicadores') return;
+
+  const a = d.atual;
+  if(a.totalColaboradores === 0){
+    cont.innerHTML = `<div class="pendencias-vazio">Nenhum colaborador ativo cadastrado — não há dados suficientes para calcular indicadores.</div>`;
+    return;
+  }
+
+  const kpis = [
+    { label:'Assiduidade', valor:`${a.taxaAssiduidade}%`, cor:a.taxaAssiduidade>=90?'#16A34A':a.taxaAssiduidade>=75?'#D97706':'#DC2626', trend:trendBadge(d.variacao.taxaAssiduidade,false), icone:'✅' },
+    { label:'Absenteísmo', valor:`${a.taxaAbsenteismo}%`, cor:a.taxaAbsenteismo<=10?'#16A34A':a.taxaAbsenteismo<=25?'#D97706':'#DC2626', trend:trendBadge(-d.variacao.taxaAssiduidade,false), icone:'📉' },
+    { label:'Pontualidade', valor:`${a.taxaPontualidade}%`, cor:a.taxaPontualidade>=90?'#16A34A':a.taxaPontualidade>=75?'#D97706':'#DC2626', trend:trendBadge(d.variacao.taxaPontualidade,false), icone:'⏱️' },
+    { label:'Faltas no mês', valor:a.totalFaltas, cor:'#64748B', trend:trendBadge(d.variacao.totalFaltas,true), icone:'📋' },
+    { label:'Dias com atraso', valor:a.totalDiasComAtraso, cor:'#64748B', trend:trendBadge(d.variacao.totalDiasComAtraso,true), icone:'⏰' },
+    { label:'Horas extras', valor:a.horasExtras, cor:'#8B5CF6', trend:'', icone:'➕' },
+    { label:'Horas noturnas', valor:a.horasNoturnas, cor:'#0891B2', trend:'', icone:'🌙' },
+    { label:'Intervalo insuficiente', valor:`${a.diasIntervaloInsuficiente} dia${a.diasIntervaloInsuficiente===1?'':'s'}`, cor:a.diasIntervaloInsuficiente>0?'#DC2626':'#16A34A', trend:'', icone:'🍽️' },
+  ];
+
+  cont.innerHTML = `
+    <div class="grid" style="grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+      ${kpis.map(k=>`
+        <div class="stat-card" style="--stat-accent:${k.cor};">
+          <div class="stat-card-top">
+            <div class="stat-label">${k.label}</div>
+            <div class="stat-icon" style="background:${k.cor}1F; color:${k.cor};">${k.icone}</div>
+          </div>
+          <div class="stat-num nums">${k.valor}</div>
+          ${k.trend?`<div style="margin-top:8px;">${k.trend}</div>`:'<div style="margin-top:8px; font-size:11px; color:var(--muted);">Total acumulado no mês</div>'}
+        </div>
+      `).join('')}
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h3>📈 Evolução — últimos 6 meses</h3>
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px; font-size:11.5px; color:var(--muted);">
+        <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#22D3EE; margin-right:5px;"></span>Assiduidade</span>
+        <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#8B5CF6; margin-right:5px;"></span>Pontualidade</span>
+      </div>
+      <div id="grafico-evolucao-wrap"><div class="loading">Carregando gráfico...</div></div>
+    </div>
+    <div class="grid cols-2" style="gap:16px;">
+      <div class="card" style="margin-bottom:0;">
+        <h3>⚠️ Mais faltas no mês</h3>
+        ${a.rankingFaltas.length===0 ? `<div class="empty" style="padding:16px 0;">Nenhum colaborador com falta neste período. 🎉</div>` :
+          `<table><thead><tr><th>Colaborador</th><th>Faltas</th></tr></thead><tbody>
+            ${a.rankingFaltas.map(r=>`<tr><td>${r.nome}</td><td class="nums" style="color:var(--red); font-weight:700;">${r.faltas}</td></tr>`).join('')}
+          </tbody></table>`}
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <h3>⏰ Mais atrasos no mês</h3>
+        ${a.rankingAtrasos.length===0 ? `<div class="empty" style="padding:16px 0;">Nenhum colaborador com atraso neste período. 🎉</div>` :
+          `<table><thead><tr><th>Colaborador</th><th>Dias com atraso</th></tr></thead><tbody>
+            ${a.rankingAtrasos.map(r=>`<tr><td>${r.nome}</td><td class="nums" style="color:var(--amber); font-weight:700;">${r.diasComAtraso}</td></tr>`).join('')}
+          </tbody></table>`}
+      </div>
+    </div>
+    <p style="font-size:11px; color:var(--muted); margin-top:16px;">
+      Comparado a ${d.mesAnteriorRef} · Calculado sobre ${a.totalColaboradores} colaborador${a.totalColaboradores===1?'':'es'} ativo${a.totalColaboradores===1?'':'s'} e ${a.totalDiasUteis} dia${a.totalDiasUteis===1?'':'s'}-colaborador úte${a.totalDiasUteis===1?'l':'is'} no período.
+    </p>
+  `;
+  carregarGraficoEvolucao();
+}
+
+async function carregarGraficoEvolucao(){
+  const wrap = document.getElementById('grafico-evolucao-wrap');
+  if(!wrap) return;
+  let serie;
+  try{
+    const resp = await apiFetch(`/relatorios/indicadores-historico?meses=6&mes=${mesIndicadores}`);
+    serie = resp.serie;
+  }catch(err){ wrap.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
+  if(currentTab !== 'indicadores') return;
+
+  wrap.innerHTML = `<canvas id="canvas-evolucao" height="200"></canvas>`;
+  desenharGraficoLinha(document.getElementById('canvas-evolucao'), serie);
+}
+
+/**
+ * Gráfico de linha simples desenhado em canvas puro (sem lib externa — o
+ * projeto inteiro não usa bundler nem dependências de front-end, então um
+ * gráfico dessa complexidade não justifica trazer uma). Duas séries fixas:
+ * assiduidade e pontualidade, ambas em escala 0-100%.
+ */
+function desenharGraficoLinha(canvas, serie){
+  const dpr = window.devicePixelRatio || 1;
+  const larguraCss = canvas.parentElement.clientWidth;
+  const alturaCss = 200;
+  canvas.width = larguraCss * dpr;
+  canvas.height = alturaCss * dpr;
+  canvas.style.width = larguraCss + 'px';
+  canvas.style.height = alturaCss + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const padL = 34, padR = 12, padT = 12, padB = 26;
+  const w = larguraCss - padL - padR;
+  const h = alturaCss - padT - padB;
+
+  ctx.clearRect(0, 0, larguraCss, alturaCss);
+
+  // Grade horizontal (0/25/50/75/100%)
+  ctx.strokeStyle = '#EDEEF0'; ctx.lineWidth = 1; ctx.font = '10px IBM Plex Mono'; ctx.fillStyle = '#6B7480';
+  [0, 25, 50, 75, 100].forEach(v=>{
+    const y = padT + h - (v/100)*h;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL+w, y); ctx.stroke();
+    ctx.fillText(v+'%', 2, y+3);
+  });
+
+  const passoX = serie.length>1 ? w/(serie.length-1) : 0;
+  function desenhaLinha(chave, cor){
+    ctx.beginPath();
+    ctx.strokeStyle = cor; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    serie.forEach((p,i)=>{
+      const x = padL + i*passoX;
+      const y = padT + h - (p[chave]/100)*h;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    // pontos
+    serie.forEach((p,i)=>{
+      const x = padL + i*passoX;
+      const y = padT + h - (p[chave]/100)*h;
+      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fillStyle = cor; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+  }
+  desenhaLinha('taxaAssiduidade', '#22D3EE');
+  desenhaLinha('taxaPontualidade', '#8B5CF6');
+
+  // Rótulos do eixo X (mês/ano abreviado)
+  ctx.fillStyle = '#6B7480'; ctx.font = '10px IBM Plex Sans'; ctx.textAlign = 'center';
+  serie.forEach((p,i)=>{
+    const x = padL + i*passoX;
+    const [ano,mesN] = p.mes.split('-');
+    ctx.fillText(`${mesN}/${ano.slice(2)}`, x, alturaCss-6);
+  });
+  ctx.textAlign = 'left';
+}
+
 async function renderRelatorios(){
   const wrap = document.createElement('div');
   const ym = selected.mes || todayYM();
@@ -1874,13 +2798,34 @@ async function carregarAuditoria(){
 /* ============================================================
    TAB: NOTIFICAÇÕES
    ============================================================ */
+const NOTIF_CONFIG = {
+  atraso_detectado: { icone:'⏰', severidade:'critica', cor:'#DC2626', corBg:'rgba(220,38,38,.1)', categoria:'atraso', rotulo:'Atraso detectado' },
+  abono_pendente: { icone:'📝', severidade:'atencao', cor:'#D97706', corBg:'rgba(217,119,6,.1)', categoria:'abono', rotulo:'Abono pendente' },
+  abono_aprovado: { icone:'✅', severidade:'informativa', cor:'#16A34A', corBg:'rgba(22,163,74,.1)', categoria:'abono', rotulo:'Abono aprovado' },
+  abono_reprovado: { icone:'❌', severidade:'atencao', cor:'#DC2626', corBg:'rgba(220,38,38,.1)', categoria:'abono', rotulo:'Abono reprovado' },
+};
+const NOTIF_SEVERIDADE_LABEL = { critica:'Crítica', atencao:'Atenção', informativa:'Informativa' };
+let filtroNotif = 'todas';
+
 async function renderNotificacoes(){
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="page-title"><div><h1>Notificações</h1><p>Abonos pendentes, atrasos detectados e outros avisos do sistema</p></div></div>
-    <div class="card" id="notif-lista"><div class="loading">Carregando...</div></div>
+    <div class="notif-filtros">
+      <button class="notif-filtro-btn active" data-f="todas">Todas</button>
+      <button class="notif-filtro-btn" data-f="nao-lidas">Não lidas</button>
+      <button class="notif-filtro-btn" data-f="atraso">Atrasos</button>
+      <button class="notif-filtro-btn" data-f="abono">Abonos</button>
+    </div>
+    <div id="notif-lista"><div class="loading">Carregando...</div></div>
   `;
   main.appendChild(wrap);
+  filtroNotif = 'todas';
+  wrap.querySelectorAll('.notif-filtro-btn').forEach(b=>b.addEventListener('click', ()=>{
+    filtroNotif = b.dataset.f;
+    wrap.querySelectorAll('.notif-filtro-btn').forEach(bb=>bb.classList.toggle('active', bb===b));
+    carregarNotificacoes();
+  }));
   await carregarNotificacoes();
 }
 
@@ -1891,26 +2836,55 @@ async function carregarNotificacoes(){
   try{ lista = await apiFetch('/notificacoes'); }
   catch(err){ cont.innerHTML = `<div class="msg err">${err.message}</div>`; return; }
 
-  const rotuloTipo = {
-    abono_pendente: '📝 Abono pendente', abono_aprovado: '✅ Abono aprovado', abono_reprovado: '❌ Abono reprovado',
-    atraso_detectado: '⏰ Atraso detectado',
-  };
+  let filtrada = lista;
+  if(filtroNotif==='nao-lidas') filtrada = lista.filter(n=>!n.lida);
+  else if(filtroNotif==='atraso' || filtroNotif==='abono') filtrada = lista.filter(n=>(NOTIF_CONFIG[n.tipo]?.categoria)===filtroNotif);
 
-  cont.innerHTML = lista.length===0 ? `<div class="empty">Nenhuma notificação.</div>` :
-    `<table><thead><tr><th></th><th>Quando</th><th>Título</th><th>Mensagem</th><th></th></tr></thead><tbody>
-      ${lista.map(n=>`
-        <tr style="${n.lida?'opacity:.55;':''}">
-          <td>${n.lida?'':'<span class="badge red" style="padding:2px 6px;">novo</span>'}</td>
-          <td class="nums" style="font-size:11.5px;">${new Date(n.createdAt).toLocaleString('pt-BR')}</td>
-          <td><strong style="font-size:12.5px;">${rotuloTipo[n.tipo]||n.titulo}</strong></td>
-          <td style="font-size:12.5px; color:var(--muted);">${n.mensagem}</td>
-          <td>${n.lida?'':`<button class="btn sm ghost" data-lida="${n.id}">Marcar lida</button>`}</td>
-        </tr>`).join('')}
-    </tbody></table>`;
+  if(filtrada.length===0){
+    cont.innerHTML = `<div class="pendencias-vazio">Nenhuma notificação ${filtroNotif==='todas'?'ainda':'nesse filtro'}.</div>`;
+    return;
+  }
+
+  cont.innerHTML = filtrada.map(n=>{
+    const cfg = NOTIF_CONFIG[n.tipo] || { icone:'🔔', cor:'#6B7480', corBg:'rgba(107,116,128,.1)', severidade:'informativa' };
+    const acoes = [];
+    if(n.tipo==='atraso_detectado'){
+      acoes.push(`<button class="btn sm ghost" data-ir-painel="1">Ver no Painel ao Vivo</button>`);
+      acoes.push(`<button class="btn sm ghost" data-registrar-ocorrencia="${n.colaboradorId||''}">Registrar ocorrência</button>`);
+    }
+    if(n.tipo==='abono_pendente'){
+      acoes.push(`<button class="btn sm ghost" data-ir-abonos="1">Analisar abono</button>`);
+    }
+    if(!n.lida) acoes.push(`<button class="btn sm gold" data-lida="${n.id}">Marcar como lida</button>`);
+    return `
+    <div class="notif-card ${n.lida?'notif-lida':''}">
+      <div class="notif-icon" style="background:${cfg.corBg}; color:${cfg.cor};">${cfg.icone}</div>
+      <div class="notif-body" style="flex:1;">
+        <div class="notif-title">
+          ${cfg.rotulo || n.titulo}
+          <span class="badge" style="background:${cfg.corBg}; color:${cfg.cor}; padding:1px 7px; font-size:10px;">${NOTIF_SEVERIDADE_LABEL[cfg.severidade]||''}</span>
+          ${!n.lida?'<span class="notif-badge-new">novo</span>':''}
+        </div>
+        <div class="notif-msg">${n.mensagem}</div>
+        ${acoes.length?`<div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">${acoes.join('')}</div>`:''}
+      </div>
+      <div class="notif-time">${new Date(n.createdAt).toLocaleString('pt-BR')}</div>
+    </div>`;
+  }).join('');
 
   cont.querySelectorAll('[data-lida]').forEach(b=>b.addEventListener('click', async ()=>{
     try{ await apiFetch(`/notificacoes/${b.dataset.lida}/lida`, { method:'PATCH' }); carregarNotificacoes(); atualizarBadgeNotificacoes(); }
     catch(err){ alert(err.message); }
+  }));
+  cont.querySelectorAll('[data-ir-painel]').forEach(b=>b.addEventListener('click', ()=>{
+    currentTab='painel'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(bb=>bb.classList.toggle('active', bb.dataset.tab===currentTab)); render();
+  }));
+  cont.querySelectorAll('[data-ir-abonos]').forEach(b=>b.addEventListener('click', ()=>{
+    currentTab='abonos'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(bb=>bb.classList.toggle('active', bb.dataset.tab===currentTab)); render();
+  }));
+  cont.querySelectorAll('[data-registrar-ocorrencia]').forEach(b=>b.addEventListener('click', ()=>{
+    subTab.ausencias = 'ocorrencia';
+    currentTab='ausencias'; document.querySelectorAll('nav.sidebar button[data-tab]').forEach(bb=>bb.classList.toggle('active', bb.dataset.tab===currentTab)); render();
   }));
 }
 
@@ -2088,7 +3062,7 @@ async function carregarListaEmpresas(){
     try{
       const data = await apiFetch('/auth/entrar-empresa', { method:'POST', body: JSON.stringify({ empresaId: b.dataset.entrar }) });
       TOKEN = data.token; PERFIL = data.perfil; MEU_COLABORADOR_ID = data.colaboradorId || null;
-      EMPRESA_ID = data.empresaId; EMPRESA_NOME = data.empresaNome;
+      EMPRESA_ID = data.empresaId; EMPRESA_NOME = data.empresaNome; MEU_LOGIN = SUPER_ADMIN_LOGIN;
       document.getElementById('who-label').textContent = `${SUPER_ADMIN_LOGIN} (como admin) · ${PERFIL}`;
       atualizarEmpresaLabel();
       aplicarVisibilidadeAbas();

@@ -251,6 +251,7 @@ async function calcularMes(colaborador, ano, mes) {
   let totalAdicionalNoturno = 0;
   let diasIntervaloInsuficiente = 0;
   let diasComAtraso = 0;
+  let diasUteis = 0;
 
   for (let d = 1; d <= nd; d += 1) {
     // eslint-disable-next-line no-await-in-loop
@@ -264,6 +265,7 @@ async function calcularMes(colaborador, ano, mes) {
     if (dia.falta) totalFaltas += 1;
     if (dia.intervaloInsuficiente) diasIntervaloInsuficiente += 1;
     if (dia.diaComAtraso) diasComAtraso += 1;
+    if (!dia.ehFuturo && dia.minutosPrevistos > 0) diasUteis += 1;
   }
 
   const resultado = {
@@ -277,14 +279,68 @@ async function calcularMes(colaborador, ano, mes) {
       noturno: minToTime(totalNoturno),
       adicionalNoturno: minToTime(totalAdicionalNoturno),
       diasIntervaloInsuficiente,
+      diasUteis,
+      // Valores em minutos "crus" (além dos já formatados acima), usados
+      // pelos Indicadores de RH pra somar entre vários colaboradores sem
+      // precisar reconverter string "H:MM" de volta pra número.
+      minutos: { trabalhado: totalTrabalhado, atraso: totalAtraso, extra: totalExtra, noturno: totalNoturno, adicionalNoturno: totalAdicionalNoturno },
     },
   };
   cacheMes.set(chaveCache, { resultado, expiraEm: Date.now() + TTL_CACHE_MES_MS });
   return resultado;
 }
 
+/**
+ * Agrega calcularMes() de todos os colaboradores ativos de uma empresa, pra
+ * gerar indicadores de RH (assiduidade, absenteísmo, pontualidade, horas
+ * extras/noturnas, ranking de quem mais faltou/atrasou). Nada aqui é
+ * inventado — é soma/divisão em cima do que calcularMes já apura por
+ * colaborador; se não houver colaborador ou dia útil no mês, os
+ * indicadores voltam com valor neutro (100% assiduidade por ausência de
+ * dado, não por engano).
+ */
+async function calcularIndicadoresEmpresa(colaboradores, ano, mes) {
+  let totalDiasUteis = 0;
+  let totalFaltas = 0;
+  let totalDiasComAtraso = 0;
+  let totalExtraMin = 0;
+  let totalNoturnoMin = 0;
+  let totalIntervaloInsuficiente = 0;
+  const ranking = [];
+
+  for (const colaborador of colaboradores) {
+    // eslint-disable-next-line no-await-in-loop
+    const { totais } = await calcularMes(colaborador, ano, mes);
+    totalDiasUteis += totais.diasUteis;
+    totalFaltas += totais.faltas;
+    totalDiasComAtraso += totais.diasComAtraso;
+    totalExtraMin += totais.minutos.extra;
+    totalNoturnoMin += totais.minutos.noturno;
+    totalIntervaloInsuficiente += totais.diasIntervaloInsuficiente;
+    ranking.push({ colaboradorId: colaborador.id, nome: colaborador.nome, faltas: totais.faltas, diasComAtraso: totais.diasComAtraso });
+  }
+
+  const taxaAssiduidade = totalDiasUteis > 0 ? Math.max(0, 100 - (totalFaltas / totalDiasUteis) * 100) : 100;
+  const taxaPontualidade = totalDiasUteis > 0 ? Math.max(0, 100 - (totalDiasComAtraso / totalDiasUteis) * 100) : 100;
+
+  return {
+    totalColaboradores: colaboradores.length,
+    totalDiasUteis,
+    totalFaltas,
+    totalDiasComAtraso,
+    taxaAssiduidade: Number(taxaAssiduidade.toFixed(1)),
+    taxaAbsenteismo: Number((100 - taxaAssiduidade).toFixed(1)),
+    taxaPontualidade: Number(taxaPontualidade.toFixed(1)),
+    horasExtras: minToTime(totalExtraMin),
+    horasNoturnas: minToTime(totalNoturnoMin),
+    diasIntervaloInsuficiente: totalIntervaloInsuficiente,
+    rankingFaltas: [...ranking].sort((a, b) => b.faltas - a.faltas).filter(r => r.faltas > 0).slice(0, 5),
+    rankingAtrasos: [...ranking].sort((a, b) => b.diasComAtraso - a.diasComAtraso).filter(r => r.diasComAtraso > 0).slice(0, 5),
+  };
+}
+
 module.exports = {
   calcularMes, calcularDia, minToTime, timeToMin, daysInMonth, dateStr,
   buscarJornadaVigente, minutosNoturnos, jornadaPrevistaMin, previstaMinParaData,
-  invalidarCacheColaborador, invalidarCacheMes,
+  invalidarCacheColaborador, invalidarCacheMes, calcularIndicadoresEmpresa,
 };
